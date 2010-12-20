@@ -43,7 +43,7 @@ def main():
   for index, vcfFile in enumerate(options.vcfFiles):
     v = vcf() # Define vcf object
     v.openVcf(vcfFile) # Open the vcf file
-    v.parseHeader(vcfFile)
+    v.parseHeader(vcfFile, True, True)
 
 # Store the header from the first vcf file.  The samplesList from 
 # all other vcf files being merged will be checked against this.

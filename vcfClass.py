@@ -6,11 +6,17 @@ import sys
 class vcf:
   def __init__(self):
     self.header = ""
+    self.infoHeaderTags = {}
+    self.formatHeaderTags = {}
     self.genotypes = False
     self.infoField = {}
     self.referenceSequences = {}
-    self.chromosome = ""
+    self.referenceSequence = ""
     self.position = -1
+    self.samplesList = []
+
+    self.processInfo = False
+    self.processGenotypes = False
 
   def openVcf(self, filename):
     if filename == "stdin":
@@ -25,47 +31,118 @@ class vcf:
 
 # Parse the vcf header.
 
-  def parseHeader(self, filename):
-    for line in self.filehandle:
+  def parseHeader(self, filename, writeOut, fullParse):
+    for rawLine in self.filehandle:
+      line = rawLine.rstrip("\n")
       if line.startswith("##"):
         self.header = self.header + line
-        tagValue = line.split("=",2)
+        if fullParse == True:
+          tagValue = line.split("=",1)
+          if tagValue[0] == "##INFO":
+            id = (tagValue[1].split("ID=",1))[1].split(",",1)
+
+# Check if this info field has already been defined.
+
+            if self.infoHeaderTags.has_key(id[0]):
+              print "Info tag \"", id[0], "\" is defined multiple times in the header."
+              exit(1)
+
+# Determine the number of entries, entry type and description.
+
+            number = (id[1].split("Number=",1))[1].split(",",1)
+            type = (number[1].split("Type=",1))[1].split(",",1)
+            description = type[1].split("Description=\"",1)
+
+# Check that the number of fields associated with the tag is as integer.
+
+            try:
+              number = int(number[0])
+            except ValueError:
+              print "\nError parsing header.  Problem with info tag:", id[0]
+              print "Number of fields associated with this tag is not an integer."
+              exit(1)
+
+            self.infoHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
+
+          elif tagValue[0] == "##FORMAT":
+            id = (tagValue[1].split("ID=",1))[1].split(",",1)
+
+# Check if this format field has already been defined.
+
+            if self.formatHeaderTags.has_key(id[0]):
+              print "Format tag \"", id[0], "\"is defined multiple times in the header."
+              exit(1)
+
+# Determine the number of entries, entry type and description.
+
+            number = (id[1].split("Number=",1))[1].split(",",1)
+            type = (number[1].split("Type=",1))[1].split(",",1)
+            description = type[1].split("\"",1)
+
+# Check that the number of fields associated with the tag is as integer.
+
+            try:
+              number = int(number[0])
+            except ValueError:
+              print "\nError parsing header.  Problem with format tag:", id[0]
+              print "Number of fields associated with this tag is not an integer."
+              exit(1)
+
+            self.formatHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
       elif line.startswith("#"):
         self.header = self.header + line
-        infoFields = line.rstrip("\n").split("\t")
 
 # Strip the end of line character from the last infoFields entry.
 
+        infoFields = line.rstrip("\n").split("\t")
         numberInfoFields = len(infoFields)
         if numberInfoFields > 8:
           if numberInfoFields - 9 == 1:
-            print numberInfoFields - 9, " sample present in vcf file in: ", filename
+            if writeOut == True:
+              print numberInfoFields - 9, " sample present in vcf file in: ", filename
           else:
-            print numberInfoFields - 9, " samples present in vcf file in: ", filename
+            if writeOut == True:
+              print numberInfoFields - 9, " samples present in vcf file in: ", filename
           self.samplesList = infoFields[9:]
-          self.samplesList
           self.genotypes = True
         else:
-          print "No samples present in the header."
-          print "No genotype information available."
+          if writeOut == True:
+            print "No samples present in the header."
+            print "No genotype information available."
         break
       else:
-        print "No header lines present."
-        print "Terminating program."
-        exit(1)
+        if writeOut == True:
+          print "No header lines present."
+          print sys.stderr, "Terminating program."
+          exit(1)
+
+# Check that info fields exist.
+
+  def checkInfoFields(self, tag):
+    if self.infoHeaderTags.has_key(tag) == False:
+      print "Info tag \"", tag, "\" does not exist in the header."
+      exit(1)
 
 # Get the next line of information from the vcf file.
 
-  def readRecord(self,line):
+  def getRecord(self,line):
     vcfEntries      = line.rstrip("\n").split("\t")
-    self.chromosome = vcfEntries[0]
+    self.referenceSequence = vcfEntries[0]
     self.position   = int(vcfEntries[1])
     self.rsid       = vcfEntries[2]
     self.ref        = vcfEntries[3]
     self.alt        = vcfEntries[4]
-    self.quality    = (vcfEntries[5])
+    self.quality    = vcfEntries[5]
     self.filters    = vcfEntries[6]
     self.info       = vcfEntries[7]
+    self.hasInfo    = True
+    self.infoTags   = {}
+    self.genotypeFormatString = vcfEntries[8]
+    self.genotypeFormats = {}
+    self.genotypes = vcfEntries[9:]
+    self.hasGenotypes = False
+    self.genotypeFields = {}
+    self.phased = False
 
 # Check for multiple alternate alleles.
 
@@ -75,37 +152,194 @@ class vcf:
     else:
       self.multiAllelic = False
 
-# Read in string of genotype information, if genotypes are
-# present in the file.
-
-    if self.genotypes:
-      self.genotypeFormat = vcfEntries[8].split(":")
-      self.genotypes = vcfEntries[9:]
-
 # Resolve all of the information in the info field and add to a
-# dictionary.
+# dictionary, if the information is to be read.
 
-  def resolveInfo(self,info):
-    self.infoField = {}
+    if self.processInfo:
 
-    fields = info.split(";")
-    for element in fields:
-      info = element.split("=") if element.find("=") else element
-      if len(info) == 1:
-        self.infoField[info[0]] = True
-      elif len(info) == 2:
-        self.infoField[info[0]] = info[1]
+# First break the info string into its constituent elements.
+    
+      infoEntries = self.info.split(";")
+
+# As long as some info fields exist, place them into a dictionary.
+
+      if len(infoEntries) == 1 and infoEntries[0] == "":
+        self.hasInfo = False
       else:
-        print "Unknown info string: ",element
-        exit(1)
+        self.hasInfo = True
+        for entry in infoEntries:
+          infoEntry = entry.split("=")
+          if len(infoEntry) == 1:
+            self.infoTags[infoEntry[0]] = True
+          elif len(infoEntry) > 1:
+            self.infoTags[infoEntry[0]] = infoEntry[1]
 
-# Resolve genotype information.
+# Read in string of genotype information, if genotypes are
+# present in the file and are requested.
 
-  def resolveGenotypes(self,genotypeFormat,genotypes):
-    print genotypes
-    exit(0)
+    if self.processGenotypes:
+      self.genotypeFormats = self.genotypeFormatString.split(":")
+
+# Check that the number of genotype fields is equal to the number of samples
+
+      if len(self.samplesList) != len(self.genotypes):
+        self.numberSamplesError()
+
+# Add the genotype information to a dictionary.
+
+      for i in range( len(self.samplesList) ):
+        genotypeInfo = self.genotypes[i].split(":")
+        self.genotypeFields[ self.samplesList[i] ] = {}
+
+# Check that there are as many fields as in the format field.  If not, this must
+# be because the information is not known.  In this case, it is permitted that
+# the genotype information is either . or ./.
+
+        if genotypeInfo[0] == "./." or genotypeInfo[0] == "." and len(self.genotypeFormats) != len(genotypeInfo):
+          self.genotypeFields[ self.samplesList[i] ] = "."
+        else:
+          if len(self.genotypeFormats) != len(genotypeInfo):
+            text = "The number of genotype fields is different to the number specified in the format string"
+            self.generalError(text, "sample", self.samplesList[i])
+
+          for j in range( len(self.genotypeFormats) ):
+            self.genotypeFields[ self.samplesList[i] ][ self.genotypeFormats[j] ] = genotypeInfo[j]
+
+# Get the information for a specific info tag.  Also check that it contains
+# the correct number and type of entries.
+
+  def getInfo(self, tag):
+    result = []
+
+# Check if the tag exists in the header information.  If so,
+# determine the number and type of entries asscoiated with this
+# tag.
+
+    if self.infoHeaderTags.has_key(tag):
+      infoNumber = self.infoHeaderTags[tag][0]
+      infoType = self.infoHeaderTags[tag][1]
+      numberValues = infoNumber
+
+# First check that the tag exists in the information string.  Then split
+# the entry on commas.  For flag entries, do not perform the split.
+
+      if self.infoTags.has_key(tag):
+        if numberValues == 0 and type(self.infoTags[tag]) == bool:
+          result = True
+        elif numberValues != 0 and type(self.infoTags[tag]) == bool:
+          print "ERROR"
+          exit(1)
+        else:
+          fields = self.infoTags[tag].split(",")
+          if len(fields) != numberValues:
+            self.numberValuesError(tag)
+
+          for i in range(infoNumber):
+            try:
+              result.append(fields[i])
+            except IndexError:
+              self.indexError(tag)
+      else:
+        numberValues = 0
+
+    else:
+      text = "information field does not have a definition in the header"
+      self.generalError(text, "tag", tag)
+
+    return numberValues, result
+
+# Get the genotype information.
+
+  def getGenotypeInfo(self, sample, tag):
+    result = []
+    if self.formatHeaderTags.has_key(tag):
+      infoNumber = self.formatHeaderTags[tag][0]
+      infoType = self.formatHeaderTags[tag][1]
+      numberValues = infoNumber
+
+      if self.genotypeFields[sample] == "." and len(self.genotypeFields[sample]) == 1:
+        numberValues = 0
+        result = "."
+      else:
+        if self.genotypeFields[sample].has_key(tag):
+          if tag == "GT":
+            if len(self.genotypeFields[sample][tag]) != 3 and len(self.genotypeFields[sample][tag]) != 1:
+              text = "Unexected number of characters in genotype (GT) field"
+              self.generalError(text, "sample", sample)
+
+# If a diploid call, check whether or not the genotype is phased.
+
+            elif len(self.genotypeFields[sample][tag]) == 3:
+              self.phased = True if self.genotypeFields[sample][tag][1] == "|" else False
+              result.append( self.genotypeFields[sample][tag][0] )
+              result.append( self.genotypeFields[sample][tag][2] )
+            elif len(self.genotypeFields[sample][tag]) == 3:
+              result.append( self.genotypeFields[sample][tag][0] )
+          else:
+            fields = self.genotypeFields[sample][tag].split(",")
+            if len(fields) != numberValues:
+              text = "Unexpected number of characters in " + tag + " field"
+              self.generalError(text, "sample", sample)
+
+            for i in range(infoNumber):
+              result.append(fields[i])
+    else:
+      text = "genotype field does not have a definition in the header"
+      self.generalError(text, "tag", tag)
+
+    return numberValues, result
 
 # Close the vcf file.
 
   def closeVcf(self, filename):
     self.filehandle.close()
+
+# Define error messages for different handled errors.
+
+  def generalError(self, text, field, fieldValue):
+    print "\nError encountered when attempting to read:"
+    print "\treference sequence : ", self.referenceSequence
+    print "\tposition :           ", self.position
+    if field != "":
+      print "\t", field, ":             ", fieldValue
+    print "\n", text
+    exit(1)
+
+  def numberSamplesError(self):
+    print "\nError encountered when attempting to read:"
+    print "\treference sequence: ", self.referenceSequence
+    print "\tposition:           ", self.position
+    print "\nThe number of genotypes is different to the number of samples"
+    exit(1)
+
+  def tagExistenceError(self, tag):
+    print "\nError encountered when attempting to read:"
+    print "\treference sequence: ", self.referenceSequence
+    print "\tposition:           ", self.position
+    print "\tsample:             ", sample
+    print "\nThe information tag:", tag, "does not exist in the header."
+    exit(1)
+
+  def numberValuesError(self, tag):
+    print "\nError encountered when attempting to read:"
+    print "\treference sequence: ", self.referenceSequence
+    print "\tposition:           ", self.position
+    print "\tinformation tag:    ", tag
+    print "\nUnexpected number of entries"
+    exit(1)
+
+  def valueError(self, tag):
+    print "\nError encountered when attempting to read:"
+    print "\ttag:                ", tag
+    print "\treference sequence: ", self.referenceSequence
+    print "\tposition:           ", self.position
+    print "\nError in type."
+    exit(1)
+
+  def indexError(self, tag):
+    print "\nError encountered when attempting to read:"
+    print "\ttag:                ", tag
+    print "\treference sequence: ", self.referenceSequence
+    print "\tposition:           ", self.position
+    print "\nInsufficient values. Expected:", self.infoHeaderTags[tag][0]
+    exit(1)

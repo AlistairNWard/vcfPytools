@@ -4,7 +4,7 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.1"
+__version__ = "version 0.2"
 __date__ = "december 2010"
 
 def main():
@@ -14,7 +14,8 @@ def main():
           "  intersect:\n\tGenerate the intersection of two vcf files.\n" + \
           "  merge:\n\tMerge a list of vcf files.\n" + \
           "  stats:\n\tGenerate statistics from a vcf file.\n" + \
-          "  union:\n\tGenerate the union of two vcf files.\n\n" + \
+          "  union:\n\tGenerate the union of two vcf files.\n" + \
+          "  validate:\n\tValidate the input vcf file.\n\n" + \
           "vcfTools.py [tool] --help for information on a specific tool."
 
 # Determine the requested tool.
@@ -37,6 +38,9 @@ def main():
   elif tool == "union":
     import union
     union.main()
+  elif tool == "validate":
+    import validate
+    validate.main()
   elif tool == "--help" or tool == "-h" or tool == "?":
     print usage
   else:

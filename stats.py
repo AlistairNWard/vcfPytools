@@ -14,17 +14,18 @@ class statistics:
     self.transitions = {}
     self.transversions = {}
     self.multiAllelic = {}
+    self.distributions = {}
 
-  def processStats(self, ref, alt, multiAllelic, chromosome):
+  def processStats(self, ref, alt, multiAllelic, referenceSequence):
 
 # Increment the number of SNPs.
 
-    self.totalSnps[chromosome] = self.totalSnps.get(chromosome, 0) + 1
+    self.totalSnps[referenceSequence] = self.totalSnps.get(referenceSequence, 0) + 1
 
 # Determine if the SNP is a transition, transversion or multi-allelic.
 
     if multiAllelic == True:
-      self.multiAllelic[chromosome] = self.multiAllelic.get(chromosome, 0) + 1
+      self.multiAllelic[referenceSequence] = self.multiAllelic.get(referenceSequence, 0) + 1
     else:
       if ref < alt:
         alleles = ref + alt
@@ -32,9 +33,9 @@ class statistics:
         alleles = alt + ref
     
       if alleles.lower() == "ag" or alleles.lower() == "ct":
-        self.transitions[chromosome] = self.transitions.get(chromosome, 0) + 1
+        self.transitions[referenceSequence] = self.transitions.get(referenceSequence, 0) + 1
       elif alleles.lower() == "ac" or alleles.lower() == "at" or alleles.lower() == "cg" or alleles.lower() == "gt":
-        self.transversions[chromosome] = self.transversions.get(chromosome, 0) + 1
+        self.transversions[referenceSequence] = self.transversions.get(referenceSequence, 0) + 1
 
   def printStats(self):
     for ref in sorted(self.referenceSequences):
@@ -45,6 +46,11 @@ class statistics:
       multiAllelic = self.multiAllelic[ref] if self.multiAllelic.has_key(ref) else 0
 
       print ref, totalSnps, transitions, transversions, multiAllelic
+
+# Initialise data structures for the distributions.
+
+  def initialiseDistributions(self):
+    print "INITIALISE"
 
 if __name__ == "__main__":
   main()
@@ -61,10 +67,14 @@ def main():
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
+  parser.add_option("-d", "--distributions",
+                    action="append", type="string",
+                    dest="distributions", help="plot distributions of variables in the info fields" + \
+                    " (all includes all info fields in header)")
 
   (options, args) = parser.parse_args()
 
-# Check that multiple vcf files are given.
+# Check that a vcf file is given.
 
   if options.vcfFile == None:
     parser.print_help()
@@ -75,11 +85,12 @@ def main():
 
   if options.output == None:
     outputFile = sys.stdout
+    writeOut = False
   else:
     outputFile = open(options.output, 'w')
+    writeOut = True
 
   v = vcf() # Define vcf object.
-  stats = statistics() # Define statistics object
 
 # Open the file.
 
@@ -87,21 +98,41 @@ def main():
 
 # Read in the header information.
 
-  v.parseHeader(options.vcfFile)
+  stats = statistics() # Define statistics object
+
+  v.parseHeader(options.vcfFile, writeOut, True)
+
+# If distributions for all the info fields listed in the header are
+# requested, populate options.distributions with these values.
+
+  if options.distributions:
+    v.processInfo = True
+    if options.distributions[0].lower() == "all" and len(options.distributions) == 1:
+      for tag in v.infoHeaderTags:
+        options.distributions.append(tag)
+      del(options.distributions[0])
+    else:
+      for tag in options.distributions:
+        if tag.lower() == "all":
+          print "If distributions for all info fields are required, include -d all only"
+          exit(0)
+
+# Check that the requested info fields exist in the vcf file and
+# initialise statistics dictionaries.
+
+  if options.distributions:
+    for tag in options.distributions:
+      v.checkInfoFields(tag)
+      stats.initialiseDistributions()
 
 # Read through all the entries.
 
   for line in v.filehandle:
-    v.readRecord(line)
-    v.resolveInfo(v.info)
-
-    stats.referenceSequences[v.chromosome] = stats.referenceSequences.get(v.chromosome, 0) + 1
-    stats.processStats(v.ref, v.alt, v.multiAllelic,v.chromosome)
+    v.getRecord(line)
+    if options.distributions:
+      for tag in options.distributions:
+        tagNumber, tagValue = v.getInfo(tag)
 
 # Close the file.
 
   v.closeVcf(options.vcfFile)
-
-# Output the statistics
-
-  stats.printStats()
