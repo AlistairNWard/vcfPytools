@@ -18,7 +18,7 @@ def main():
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",
-                    dest="vcfFiles", help="input vcf file")
+                    dest="vcfFiles", help="input vcf files:")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
@@ -72,7 +72,10 @@ def main():
     print "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    outputFile.write( v1.header )
+    outputFile.write( v1.headerText ) if v.headerText != "" else None
+    outputFile.write( v1.headerInfoText ) if v.headerInfoText != "" else None
+    outputFile.write( v1.headerFormatText ) if v.headerFormatText != "" else None
+    outputFile.write( v1.headerTitles )
 
 # Get the first line of the second vcf file.
 
@@ -109,36 +112,40 @@ def main():
 # vcf file until this reference sequence is reached, then search for the
 # same position.
 
-    elif vcfReferenceSequences[v1.referenceSequence] == False:
-      for line2 in v2.filehandle:
-        v2.getRecord(line2)
-        vcfReferenceSequences[v2.referenceSequence] = True
-        if v1.referenceSequence == v2.referenceSequence:
-          if v1.position == v2.position:
-            outputFile.write( line1 )
-            break
-          elif v1.position < v2.position:
-            break
+    elif vcfReferenceSequences.has_key(v.referenceSequence):
+      if vcfReferenceSequences[v1.referenceSequence] == False:
+        for line2 in v2.filehandle:
+          v2.getRecord(line2)
+          vcfReferenceSequences[v2.referenceSequence] = True
+          if v1.referenceSequence == v2.referenceSequence:
+            if v1.position == v2.position:
+              outputFile.write( line1 )
+              break
+            elif v1.position < v2.position:
+              break
 
 # If the reference sequence in the record from the first vcf file exists
 # in the second and has already been parsed, close and reopen the second
 # vcf file, then allow the search to begin again from the beginning of the
 # file.
 
-    elif vcfReferenceSequences[v1.referenceSequence] == True:
-      v2.closeVcf(options.vcfFiles[1])
-      v2.openVcf(options.vcfFiles[1])
-      v2.parseHeader(options.vcfFiles[1], False, False)
-      for ref in vcfReferenceSequences:
-        vcfReferenceSequences[ref] = False
-      for line2 in v2.filehandle:
-        v2.getRecord(line2)
-        if v1.referenceSequence == v2.referenceSequence:
-          if v1.position == v2.position:
-            outputFile.write( line1 )
-            break
-          elif v1.position < v2.position:
-            break
+      elif vcfReferenceSequences[v1.referenceSequence] == True:
+        v2.closeVcf(options.vcfFiles[1])
+        v2.openVcf(options.vcfFiles[1])
+        v2.parseHeader(options.vcfFiles[1], False, False)
+        for ref in vcfReferenceSequences:
+          vcfReferenceSequences[ref] = False
+        for line2 in v2.filehandle:
+          v2.getRecord(line2)
+          if v1.referenceSequence == v2.referenceSequence:
+            if v1.position == v2.position:
+              outputFile.write( line1 )
+              break
+            elif v1.position < v2.position:
+              break
+
+    else:
+      continue
 
 # Close the vcf files.
 

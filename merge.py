@@ -51,7 +51,10 @@ def main():
 
     if index == 0:
       samples = v.samplesList
-      outputFile.write( v.header )
+      outputFile.write( v.headerText ) if v.headerText != "" else None
+      outputFile.write( v.headerInfoText ) if v.headerInfoText != "" else None
+      outputFile.write( v.headerFormatText ) if v.headerFormatText != "" else None
+      outputFile.write( v.headerTitles )
     else:
       if v.samplesList != samples:
         print >> sys.stderr, "WARNING: Different samples in file: ", vcfFile

@@ -10,17 +10,22 @@ from vcfClass import *
 class statistics:
   def __init__(self):
     self.referenceSequences = {}
-    self.totalSnps = {}
+    self.novelSnps = {}
+    self.knownSnps = {}
     self.transitions = {}
     self.transversions = {}
     self.multiAllelic = {}
     self.distributions = {}
 
-  def processStats(self, ref, alt, multiAllelic, referenceSequence):
+  def processGeneralStats(self, rsid, ref, alt, multiAllelic, referenceSequence):
+    self.referenceSequences[referenceSequence] = True
 
 # Increment the number of SNPs.
 
-    self.totalSnps[referenceSequence] = self.totalSnps.get(referenceSequence, 0) + 1
+    if rsid == ".":
+      self.novelSnps[referenceSequence] = self.novelSnps.get(referenceSequence, 0) + 1
+    else:
+      self.knownSnps[referenceSequence] = self.knownSnps.get(referenceSequence, 0) + 1
 
 # Determine if the SNP is a transition, transversion or multi-allelic.
 
@@ -37,15 +42,43 @@ class statistics:
       elif alleles.lower() == "ac" or alleles.lower() == "at" or alleles.lower() == "cg" or alleles.lower() == "gt":
         self.transversions[referenceSequence] = self.transversions.get(referenceSequence, 0) + 1
 
-  def printStats(self):
-    for ref in sorted(self.referenceSequences):
+  def printGeneralStats(self):
+    allNovelSnps = 0
+    allKnownSnps = 0
+    allTransitions = 0
+    allTransversions = 0
+    allMultiAllelic = 0
 
-      totalSnps = self.totalSnps[ref] if self.totalSnps.has_key(ref) else 0
+    print '%(text1)20s  %(text2)18s  %(text3)18s  %(text4)7s  %(text5)15s  %(text6)15s  %(text7)11s  %(text8)15s' % \
+          {"text1": "reference sequence", "text2": "total # novel SNPS", "text3": "total # known SNPs", \
+           "text4": "% dbSNP", "text5": "# transitions", "text6": "# transversions", "text7": "Ts/Tv ratio", "text8": "# multiAllelic"}
+    for ref in sorted(self.referenceSequences):
+      novelSnps = self.novelSnps[ref] if self.novelSnps.has_key(ref) else 0
+      knownSnps = self.knownSnps[ref] if self.knownSnps.has_key(ref) else 0
       transitions = self.transitions[ref] if self.transitions.has_key(ref) else 0
       transversions = self.transversions[ref] if self.transversions.has_key(ref) else 0
       multiAllelic = self.multiAllelic[ref] if self.multiAllelic.has_key(ref) else 0
 
-      print ref, totalSnps, transitions, transversions, multiAllelic
+      allNovelSnps += novelSnps
+      allKnownSnps += knownSnps
+      allTransitions += transitions
+      allTransversions += transversions
+      allMultiAllelic += multiAllelic
+      dbsnp = 100*knownSnps/(knownSnps + novelSnps)
+      dbsnp = 100*knownSnps/(knownSnps + novelSnps) if (knownSnps + novelSnps) != 0 else 0
+      tsTv = transitions/transversions if transversions != 0 else 0
+
+      print '%(ref)20s  %(novelSnps)18d  %(knownSnps)18d  %(dbsnp)7.2f  %(transitions)15d  %(transversions)15d  %(tstv)11.2f  %(multiAllelic)15d' % \
+            {"ref": ref, "novelSnps": novelSnps, "knownSnps": knownSnps, "dbsnp": dbsnp, "transitions": transitions, \
+             "transversions": transversions, "tstv": tsTv, "multiAllelic": multiAllelic}
+
+    dbsnp = 100*allKnownSnps/(allKnownSnps + allNovelSnps) if (allKnownSnps + allNovelSnps) != 0 else 0
+    tsTv = allTransitions/allTransversions if allTransversions != 0 else 0
+
+    print
+    print '%(ref)20s  %(novelSnps)18d  %(knownSnps)18d  %(dbsnp)7.2f  %(transitions)15d  %(transversions)15d  %(tstv)11.2f  %(multiAllelic)15d' % \
+          {"ref": "total", "novelSnps": allNovelSnps, "knownSnps": allKnownSnps, "dbsnp": dbsnp, "transitions": allTransitions, \
+           "transversions": allTransversions, "tstv": tsTv, "multiAllelic": allMultiAllelic}
 
 # Initialise data structures for the distributions.
 
@@ -129,6 +162,7 @@ def main():
 
   for line in v.filehandle:
     v.getRecord(line)
+    stats.processGeneralStats(v.rsid, v.ref, v.alt, v.multiAllelic, v.referenceSequence)
     if options.distributions:
       for tag in options.distributions:
         tagNumber, tagValue = v.getInfo(tag)
@@ -136,3 +170,7 @@ def main():
 # Close the file.
 
   v.closeVcf(options.vcfFile)
+
+# Print out the stats.
+
+  stats.printGeneralStats()

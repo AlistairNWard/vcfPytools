@@ -5,7 +5,11 @@ import sys
 
 class vcf:
   def __init__(self):
-    self.header = ""
+    self.hasHeader = True
+    self.headerText = ""
+    self.headerInfoText = ""
+    self.headerFormatText = ""
+    self.headerTitles = ""
     self.infoHeaderTags = {}
     self.formatHeaderTags = {}
     self.genotypes = False
@@ -17,6 +21,7 @@ class vcf:
 
     self.processInfo = False
     self.processGenotypes = False
+    self.dbsnpVcf = False
 
   def openVcf(self, filename):
     if filename == "stdin":
@@ -35,10 +40,10 @@ class vcf:
     for rawLine in self.filehandle:
       line = rawLine.rstrip("\n")
       if line.startswith("##"):
-        self.header = self.header + line
         if fullParse == True:
           tagValue = line.split("=",1)
           if tagValue[0] == "##INFO":
+            self.headerInfoText = self.headerInfoText + line + "\n"
             id = (tagValue[1].split("ID=",1))[1].split(",",1)
 
 # Check if this info field has already been defined.
@@ -65,6 +70,7 @@ class vcf:
             self.infoHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
 
           elif tagValue[0] == "##FORMAT":
+            self.headerFormatText = self.headerFormatText + line + "\n"
             id = (tagValue[1].split("ID=",1))[1].split(",",1)
 
 # Check if this format field has already been defined.
@@ -89,8 +95,10 @@ class vcf:
               exit(1)
 
             self.formatHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
+          else:
+            self.headerText = self.headerText + line + "\n"
       elif line.startswith("#"):
-        self.header = self.header + line
+        self.headerTitles = line + "\n"
 
 # Strip the end of line character from the last infoFields entry.
 
@@ -110,11 +118,18 @@ class vcf:
             print "No samples present in the header."
             print "No genotype information available."
         break
+
+# If there is no header in the vcf file, close and reopen the vcf file, so that
+# the first line called will be the first line of the file.
+
       else:
         if writeOut == True:
-          print "No header lines present."
-          print sys.stderr, "Terminating program."
-          exit(1)
+          print >> sys.stderr, "No header lines present in", filename
+
+        self.hasHeader = False
+        self.closeVcf(filename)
+        self.openVcf(filename)
+        break
 
 # Check that info fields exist.
 
@@ -137,12 +152,15 @@ class vcf:
     self.info       = vcfEntries[7]
     self.hasInfo    = True
     self.infoTags   = {}
-    self.genotypeFormatString = vcfEntries[8]
-    self.genotypeFormats = {}
-    self.genotypes = vcfEntries[9:]
-    self.hasGenotypes = False
-    self.genotypeFields = {}
-    self.phased = False
+    if len(vcfEntries) > 8:
+      self.genotypeFormatString = vcfEntries[8]
+      self.genotypeFormats = {}
+      self.genotypes = vcfEntries[9:]
+      self.hasGenotypes = True
+      self.genotypeFields = {}
+      self.phased = False
+    else:
+      self.hasGenotypes = False
 
 # Check for multiple alternate alleles.
 
@@ -289,6 +307,58 @@ class vcf:
 
     return numberValues, result
 
+# Parse the dbsnp entry.  If the entry conforms to the required variant type,
+# return the dbsnp rsid value, otherwise ".".
+
+  def getDbsnpInfo(self, line):
+
+# First check that the variant class (VC) is listed as SNP.
+
+    vc = self.info.split("VC=",1)
+    if vc[1].find(";") != -1:
+      snp = vc[1].split(";",1) 
+    else:
+      snp = []
+      snp.append(vc[1])
+
+    if snp[0].lower() == "snp":
+      rsid = self.rsid
+    else:
+      rsid = "."
+
+    return rsid
+
+# Build a new vcf record.
+
+  def buildRecord(self, ref, alt):
+    newRecord = self.referenceSequence + "\t" + \
+                str(self.position) + "\t" + \
+                self.rsid + "\t" + \
+                self.ref + "\t" + \
+                self.alt + "\t" + \
+                self.quality + "\t" + \
+                self.filters + "\t" + \
+                self.info
+
+    if self.hasGenotypes == True:
+      newRecord = newRecord + "\t" + self.genotypeFormatString
+      for genotype in self.genotypes:
+        newRecord = newRecord + "\t" + genotype
+
+    newRecord = newRecord + "\n"
+
+# Check that the reference and alternate in the dbsnp vcf file match those
+# from the input vcf file.
+
+    if self.ref.lower() != ref.lower() or self.alt.lower() != alt.lower():
+      text = "WARNING: " + self.referenceSequence + ":" + str(self.position) + \
+             " has different bases than the dbsnp entry\n\tref: " + ref + \
+             "(" + self.ref + "), alt: " + alt + "(" + self.alt + ")\n"
+
+      print >> sys.stderr, text
+
+    return newRecord
+
 # Close the vcf file.
 
   def closeVcf(self, filename):
@@ -297,12 +367,12 @@ class vcf:
 # Define error messages for different handled errors.
 
   def generalError(self, text, field, fieldValue):
-    print "\nError encountered when attempting to read:"
-    print "\treference sequence : ", self.referenceSequence
-    print "\tposition :           ", self.position
+    print >> sys.stderr, "\nError encountered when attempting to read:"
+    print >> sys.stderr, "\treference sequence : ", self.referenceSequence
+    print >> sys.stderr, "\tposition :           ", self.position
     if field != "":
-      print "\t", field, ":             ", fieldValue
-    print "\n", text
+      print >> sys.stderr, "\t", field, ":             ", fieldValue
+    print >> sys.stderr,  "\n", text
     exit(1)
 
   def numberSamplesError(self):

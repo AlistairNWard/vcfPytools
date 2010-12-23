@@ -72,7 +72,9 @@ def main():
     print "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    outputFile.write( v1.header )
+    outputFile.write( v1.headerText ) if v.headerText != "" else None
+    outputFile.write( v1.headerInfoText ) if v.headerInfoText != "" else None
+    outputFile.write( v1.headerFormatText ) if v.headerFormatText != "" else None
 
 # Get the first line of the second vcf file.
 

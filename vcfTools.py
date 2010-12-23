@@ -4,13 +4,14 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.2"
+__version__ = "version 0.3"
 __date__ = "december 2010"
 
 def main():
 
   usage = "Usage: vcfTools.py [tool] [options]\n\n" + \
           "Available tools:\n" + \
+          "  dbsnp:\n\tAnnotate the vcf file with dbsnp membership (requires dbsnp in vcf format).\n" + \
           "  intersect:\n\tGenerate the intersection of two vcf files.\n" + \
           "  merge:\n\tMerge a list of vcf files.\n" + \
           "  stats:\n\tGenerate statistics from a vcf file.\n" + \
@@ -26,6 +27,9 @@ def main():
     print usage
     exit(1)
 
+  if tool == "dbsnp":
+    import dbsnp
+    dbsnp.main()
   if tool == "intersect":
     import intersect
     intersect.main()
