@@ -65,15 +65,15 @@ class statistics:
       allTransversions += transversions
       allMultiAllelic += multiAllelic
       dbsnp = 100*knownSnps/(knownSnps + novelSnps)
-      dbsnp = 100*knownSnps/(knownSnps + novelSnps) if (knownSnps + novelSnps) != 0 else 0
-      tsTv = transitions/transversions if transversions != 0 else 0
+      dbsnp = 100*float(knownSnps)/( float(knownSnps) + float(novelSnps) ) if (knownSnps + novelSnps) != 0 else 0
+      tsTv = float(transitions)/float(transversions) if transversions != 0 else 0
 
       print '%(ref)20s  %(novelSnps)18d  %(knownSnps)18d  %(dbsnp)7.2f  %(transitions)15d  %(transversions)15d  %(tstv)11.2f  %(multiAllelic)15d' % \
             {"ref": ref, "novelSnps": novelSnps, "knownSnps": knownSnps, "dbsnp": dbsnp, "transitions": transitions, \
              "transversions": transversions, "tstv": tsTv, "multiAllelic": multiAllelic}
 
-    dbsnp = 100*allKnownSnps/(allKnownSnps + allNovelSnps) if (allKnownSnps + allNovelSnps) != 0 else 0
-    tsTv = allTransitions/allTransversions if allTransversions != 0 else 0
+    dbsnp = 100*float(allKnownSnps)/( float(allKnownSnps) + float(allNovelSnps) ) if (allKnownSnps + allNovelSnps) != 0 else 0
+    tsTv = float(allTransitions)/float(allTransversions) if allTransversions != 0 else 0
 
     print
     print '%(ref)20s  %(novelSnps)18d  %(knownSnps)18d  %(dbsnp)7.2f  %(transitions)15d  %(transversions)15d  %(tstv)11.2f  %(multiAllelic)15d' % \
