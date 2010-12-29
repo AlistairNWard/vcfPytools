@@ -7,6 +7,9 @@ import optparse
 import vcfClass
 from vcfClass import *
 
+import tools
+from tools import *
+
 if __name__ == "__main__":
   main()
 
@@ -72,10 +75,7 @@ def main():
     print "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    outputFile.write( v1.headerText ) if v.headerText != "" else None
-    outputFile.write( v1.headerInfoText ) if v.headerInfoText != "" else None
-    outputFile.write( v1.headerFormatText ) if v.headerFormatText != "" else None
-    outputFile.write( v1.headerTitles )
+    writeHeader(outputFile, v)
 
 # Get the first line of the second vcf file.
 

@@ -140,7 +140,7 @@ class vcf:
 
 # Get the next line of information from the vcf file.
 
-  def getRecord(self,line):
+  def getRecord(self, line):
     vcfEntries      = line.rstrip("\n").split("\t")
     self.referenceSequence = vcfEntries[0]
     self.position   = int(vcfEntries[1])
@@ -330,7 +330,7 @@ class vcf:
 
 # Build a new vcf record.
 
-  def buildRecord(self, ref, alt):
+  def buildRecord(self):
     newRecord = self.referenceSequence + "\t" + \
                 str(self.position) + "\t" + \
                 self.rsid + "\t" + \
@@ -346,16 +346,6 @@ class vcf:
         newRecord = newRecord + "\t" + genotype
 
     newRecord = newRecord + "\n"
-
-# Check that the reference and alternate in the dbsnp vcf file match those
-# from the input vcf file.
-
-    if self.ref.lower() != ref.lower() or self.alt.lower() != alt.lower():
-      text = "WARNING: " + self.referenceSequence + ":" + str(self.position) + \
-             " has different bases than the dbsnp entry\n\tref: " + ref + \
-             "(" + self.ref + "), alt: " + alt + "(" + self.alt + ")\n"
-
-      print >> sys.stderr, text
 
     return newRecord
 

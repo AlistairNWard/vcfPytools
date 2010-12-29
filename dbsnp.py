@@ -10,6 +10,17 @@ from vcfClass import *
 if __name__ == "__main__":
   main()
 
+# Check that the reference and alternate in the dbsnp vcf file match those
+# from the input vcf file.
+
+def checkRefAlt(vcfRef, vcfAlt, dbsnpRef, dbsnpAlt, ref, position):
+  if vcfRef.lower() != dbsnpRef.lower() or vcfAlt.lower() != dbsnpAlt.lower():
+    text = "WARNING: " + ref + ":" + str(position) + \
+           " has different bases than the dbsnp entry\n\tref: " + dbsnpRef + \
+           "(" + vcfRef + "), alt: " + dbsnpAlt + "(" + vcfAlt + ")\n"
+
+    print >> sys.stderr, text
+
 def main():
 
 # Parse the command line options
@@ -28,7 +39,7 @@ def main():
 
   (options, args) = parser.parse_args()
 
-# Check that multiple vcf files are given.
+# Check that a single vcf file is given.
 
   if options.vcfFile == None:
     parser.print_help()
@@ -105,7 +116,8 @@ def main():
       vcfReferenceSequences[v.referenceSequence] = True
       if v.position == dbsnp.position:
         v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-        newRecord = v.buildRecord(dbsnp.ref, dbsnp.alt)
+        checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
+        newRecord = v.buildRecord()
         outputFile.write( newRecord )
       elif v.position > dbsnp.position:
         for dbsnpLine in dbsnp.filehandle:
@@ -118,7 +130,8 @@ def main():
             break
           elif v.position == dbsnp.position:
             v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-            newRecord = v.buildRecord(dbsnp.ref, dbsnp.alt)
+            checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
+            newRecord = v.buildRecord()
             outputFile.write( newRecord )
             break
       else:
@@ -140,7 +153,8 @@ def main():
           if v.referenceSequence == dbsnp.referenceSequence:
             if v.position == dbsnp.position:
               v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-              newRecord = v.buildRecord(dbsnp.ref, dbsnp.alt)
+              checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
+              newRecord = v.buildRecord()
               outputFile.write( newRecord )
               break
             elif v.position < dbsnp.position:
@@ -163,7 +177,8 @@ def main():
           if v.referenceSequence == dbsnp.referenceSequence:
             if v.position == dbsnp.position:
               v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-              newRecord = v.buildRecord(dbsnp.ref, dbsnp.alt)
+              checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
+              newRecord = v.buildRecord()
               outputFile.write( newRecord )
               break
             elif v.position < dbsnp.position:
