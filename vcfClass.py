@@ -264,7 +264,7 @@ class vcf:
       text = "information field does not have a definition in the header"
       self.generalError(text, "tag", tag)
 
-    return numberValues, result
+    return numberValues, infoType, result
 
 # Get the genotype information.
 

@@ -3,6 +3,7 @@
 import os.path
 import sys
 import optparse
+import subprocess
 
 import vcfClass
 from vcfClass import *
@@ -61,7 +62,12 @@ class statistics:
 
           self.knownTransversions[referenceSequence][filters] = self.knownTransversions[referenceSequence].get(filters, 0) + 1
 
-  def printGeneralStats(self):
+# Initialise data structures for the distributions.
+
+  def initialiseDistributions(self, tag):
+    self.distributions[tag] = {}
+
+  def printGeneralStats(self, file):
     allNovelTransitions = {}
     allKnownTransitions = {}
     allNovelTransversions = {}
@@ -70,12 +76,13 @@ class statistics:
     allFilters = {}
     allFilters["total"] = True
 
-    print '%(text1)20s  %(text2)58s  %(text3)7s  %(text4)22s' % \
+    print >> file, '%(text1)20s  %(text2)58s  %(text3)7s  %(text4)22s' % \
           {"text1": "", \
            "text2": "--------------------------# SNPs--------------------------", \
            "text3": "", \
            "text4": "------ts/tv ratio-----"}
-    print '%(text1)20s  %(text2)10s  %(text3)10s  %(text4)10s  %(text5)10s  %(text6)10s  %(text7)7s  %(text8)6s  %(text9)6s  %(text10)6s  %(text11)14s' % \
+    print >> file, '%(text1)20s  %(text2)10s  %(text3)10s  %(text4)10s  %(text5)10s  %(text6)10s  %(text7)7s  %(text8)6s  \
+%(text9)6s  %(text10)6s  %(text11)14s' % \
           {"text1" : "filter", \
            "text2" : "total ", \
            "text3" : "novel ts", \
@@ -95,7 +102,7 @@ class statistics:
       knownTransversions = {}
       multiAllelic = {}
 
-      print "\nreference sequence:", ref
+      print >> file, "\nreference sequence:", ref
 
 # Count up the novel transitions for each filter.
 
@@ -188,9 +195,10 @@ class statistics:
         tstv = float(transitions) / float(transversions) if transversions != 0 else 0.
 
         if filter == "total":
-          print "\n               ---------------------------------------------------------------------------------------------------------------------------------"
+          print >> file, "\n               ------------------------------------------------------------------------" + \
+                         "---------------------------------------------------------"
 
-        print '%(filter)20s  %(total)10d  %(novelTs)10d  %(novelTv)10d  %(knownTs)10d  %(knownTv)10d  %(dbsnp)7.2f  \
+        print >> file, '%(filter)20s  %(total)10d  %(novelTs)10d  %(novelTv)10d  %(knownTs)10d  %(knownTv)10d  %(dbsnp)7.2f  \
 %(totaltstv)6.2f  %(noveltstv)6.2f  %(knowntstv)6.2f  %(multi)14d' % \
               {"filter" : filter, \
                "total" : totalSnp, \
@@ -205,9 +213,10 @@ class statistics:
                "multi": multi}
 
         if len(filterList) - 1 == index:
-          print "               ---------------------------------------------------------------------------------------------------------------------------------"
+          print >> file, "               ----------------------------------------------------------------------------" + \
+                         "-----------------------------------------------------"
 
-    print "\nTotal for all reference sequences"
+    print >> file, "\nTotal for all reference sequences"
     for index, filter in enumerate(filterList):
       novelTs = allNovelTransitions.get(filter, 0)
       novelTv = allNovelTransversions.get(filter, 0)
@@ -222,21 +231,16 @@ class statistics:
       transitions = novelTs + knownTs
       transversions = novelTv + knownTv
 
-      #novel = allNovelTransitions.get(filter, 0) + allNovelTransversions.get(filter, 0)
-      #known = allKnownTransitions.get(filter, 0) + allKnownTransversions.get(filter, 0)
-      #transitions = allNovelTransitions.get(filter, 0) + allKnownTransitions.get(filter, 0)
-      #transversions = allNovelTransversions.get(filter, 0) + allKnownTransversions.get(filter, 0)
-      #multi = multiAllelic.get(filter, 0)
-
       dbsnp = 100 * float(known) / ( float(known) + float(novel) ) if (known + novel) != 0 else 0
       noveltstv = float(novelTs) / float(novelTv) if novelTv != 0 else 0
       knowntstv = float(knownTs) / float(knownTv) if knownTv != 0 else 0
       tstv = float(transitions) / float(transversions) if transversions != 0 else 0
 
       if filter == "total":
-        print "\n               ---------------------------------------------------------------------------------------------------------------------------------"
+        print >> file, "\n               ----------------------------------------------------------------------------" + \
+                       "-----------------------------------------------------"
 
-      print '%(filter)20s  %(total)10d  %(novelTs)10d  %(novelTv)10d  %(knownTs)10d  %(knownTv)10d  %(dbsnp)7.2f  \
+      print >> file, '%(filter)20s  %(total)10d  %(novelTs)10d  %(novelTv)10d  %(knownTs)10d  %(knownTv)10d  %(dbsnp)7.2f  \
 %(totaltstv)6.2f  %(noveltstv)6.2f  %(knowntstv)6.2f  %(multi)14d' % \
             {"filter" : filter, \
              "total" : totalSnp, \
@@ -251,12 +255,21 @@ class statistics:
              "multi": multi}
 
       if len(filterList) - 1 == index:
-        print "               ---------------------------------------------------------------------------------------------------------------------------------"
+        print >> file, "               ----------------------------------------------------------------------------------" + \
+                       "-----------------------------------------------"
 
-# Initialise data structures for the distributions.
+    print >> file
 
-  def initialiseDistributions(self):
-    print "INITIALISE"
+# Print out the distributions.
+
+  def printDistributions(self, file):
+    for tag, value in self.distributions.iteritems():
+      print >> file, "Statistics for information field: ", tag
+      keys = self.distributions[tag].keys()
+      keys.sort()
+      for key in keys:
+        print >> file, key, self.distributions[tag][key]
+      print >> file
 
 if __name__ == "__main__":
   main()
@@ -277,6 +290,9 @@ def main():
                     action="append", type="string",
                     dest="distributions", help="plot distributions of variables in the info fields" + \
                     " (all includes all info fields in header)")
+  parser.add_option("-p", "--pass",
+                    action="store_true", default=False,
+                    dest="passed", help="only consider records that have passed filtering")
 
   (options, args) = parser.parse_args()
 
@@ -329,16 +345,31 @@ def main():
   if options.distributions:
     for tag in options.distributions:
       v.checkInfoFields(tag)
-      stats.initialiseDistributions()
+      stats.initialiseDistributions(tag)
 
 # Read through all the entries.
 
   for line in v.filehandle:
     v.getRecord(line)
+    getStats = False if (options.passed and v.filters != "PASS") else True
     stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.multiAllelic, v.filters)
-    if options.distributions:
+    if options.distributions and getStats:
       for tag in options.distributions:
-        tagNumber, tagValue = v.getInfo(tag)
+        tagNumber, tagType, tagValue = v.getInfo(tag)
+
+# Deal with info tags that contain one value only.
+
+        if tagNumber == 1:
+          if tagType.lower() == "integer":
+            key = int(tagValue[0])
+            stats.distributions[tag][key] = stats.distributions[tag].get(key, 0) + 1
+          else:
+            print >> sys.stderr, "Cannot handle info tags with non-integer values. ( Filter", tag, ")"
+
+# Deal with info tags with multiple values.
+
+        else:
+          print >> sys.stderr, "Cannot handle info tags with multiple values. ( Filter:", tag, ")"
 
 # Close the file.
 
@@ -346,4 +377,6 @@ def main():
 
 # Print out the stats.
 
-  stats.printGeneralStats()
+  stats.printGeneralStats(outputFile)
+  if options.distributions:
+    stats.printDistributions(outputFile)
