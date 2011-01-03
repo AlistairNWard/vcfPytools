@@ -8,6 +8,9 @@ import subprocess
 import vcfClass
 from vcfClass import *
 
+import RTools
+from RTools import *
+
 class statistics:
   def __init__(self):
     self.referenceSequences = {}
@@ -262,14 +265,30 @@ class statistics:
 
 # Print out the distributions.
 
-  def printDistributions(self, file):
+  def printDistributions(self, file, plot):
     for tag, value in self.distributions.iteritems():
       print >> file, "Statistics for information field: ", tag
       keys = self.distributions[tag].keys()
       keys.sort()
+      if plot:
+        tempOutput = open("Rdata", 'w')
+
       for key in keys:
         print >> file, key, self.distributions[tag][key]
+        if plot:
+          print >> tempOutput, key, self.distributions[tag][key]
       print >> file
+
+      if plot:
+        pdfFile = "dist" + tag
+        pdfRoot = pdfFile.split(".",2)
+        pdfFile = pdfRoot[0] + ".pdf"
+        RScript = createRHistScript(pdfFile)
+        success = subprocess.call("R CMD BATCH vcfToolsRScript.R", shell=True)
+        os.remove("Rdata")
+        os.remove(RScript)
+        RScript = RScript + "out"
+        os.remove(RScript)
 
 if __name__ == "__main__":
   main()
@@ -290,9 +309,12 @@ def main():
                     action="append", type="string",
                     dest="distributions", help="plot distributions of variables in the info fields" + \
                     " (all includes all info fields in header)")
-  parser.add_option("-p", "--pass",
+  parser.add_option("-f", "--filter_pass",
                     action="store_true", default=False,
-                    dest="passed", help="only consider records that have passed filtering")
+                    dest="passed", help="only consider records whose filter is listed as PASS")
+  parser.add_option("-p", "--plot",
+                    action="store_true", default=False,
+                    dest="plotDist", help="use R to plot distributions")
 
   (options, args) = parser.parse_args()
 
@@ -379,4 +401,4 @@ def main():
 
   stats.printGeneralStats(outputFile)
   if options.distributions:
-    stats.printDistributions(outputFile)
+    stats.printDistributions(outputFile, options.plotDist)

@@ -75,7 +75,7 @@ def main():
     print "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    writeHeader(outputFile, v)
+    writeHeader(outputFile, v1) # tools.py
 
 # Get the first line of the second vcf file.
 
@@ -83,10 +83,25 @@ def main():
     v2.getRecord(line2)
     break
 
+# Define a dictionary, openTemp.  A new temp file is created for each
+# reference sequence.  When a new temp file is opened, the name of the
+# temp file is added to the dictionary.
+
+  openTemp = {}
+
 # Calculate the intersection.
 
   for line1 in v1.filehandle:
     v1.getRecord(line1)
+
+# Check if a temp file exists for this reference sequence.  If not,
+# open one.
+
+    print "TESTING"
+    refTemp = "vcfTools_" + v1.referenceSequence + ".tmp"
+    if refTemp not in openTemp:
+      print "HELLO"
+      exit(0)
 
 # Check if the records from the two vcf files correspond to the same
 # reference sequence.  If so, search up to the same position and

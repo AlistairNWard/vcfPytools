@@ -7,6 +7,9 @@ import optparse
 import vcfClass
 from vcfClass import *
 
+import tools
+from tools import *
+
 if __name__ == "__main__":
   main()
 
@@ -18,7 +21,7 @@ def main():
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",
-                    dest="vcfFiles", help="input vcf file")
+                    dest="vcfFiles", help="input vcf files:")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
@@ -72,9 +75,7 @@ def main():
     print "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    outputFile.write( v1.headerText ) if v.headerText != "" else None
-    outputFile.write( v1.headerInfoText ) if v.headerInfoText != "" else None
-    outputFile.write( v1.headerFormatText ) if v.headerFormatText != "" else None
+    writeHeader(outputFile, v) # tools.py
 
 # Get the first line of the second vcf file.
 
@@ -82,7 +83,7 @@ def main():
     v2.getRecord(line2)
     break
 
-# Calculate the intersection.
+# Calculate the union.
 
   for line1 in v1.filehandle:
     v1.getRecord(line1)
@@ -99,15 +100,11 @@ def main():
         for line2 in v2.filehandle:
           v2.getRecord(line2)
           if v1.referenceSequence != v2.referenceSequence:
-            outputFile.write( line2 )
             break
           if v2.position > v1.position:
             break
           elif v1.position == v2.position:
-            outputFile.write( line2 )
-            break
-          else:
-            outputFile.write( line2 )
+            outputFile.write( line1 )
             break
 
 # If the reference sequence in the record from the first vcf file exists
@@ -115,28 +112,40 @@ def main():
 # vcf file until this reference sequence is reached, then search for the
 # same position.
 
-    elif vcfReferenceSequences[v1.referenceSequence] == False:
-      for line2 in v2.filehandle:
-        v2.getRecord(line2)
-        vcfReferenceSequences[v2.referenceSequence] = True
-        if v1.referenceSequence == v2.referenceSequence:
-          if v1.position == v2.position:
-            outputFile.write( line1 )
-            break
-          elif v1.position < v2.position:
-            break
-        else:
-          outputFile.write( line2 )
+    elif vcfReferenceSequences.has_key(v.referenceSequence):
+      if vcfReferenceSequences[v1.referenceSequence] == False:
+        for line2 in v2.filehandle:
+          v2.getRecord(line2)
+          vcfReferenceSequences[v2.referenceSequence] = True
+          if v1.referenceSequence == v2.referenceSequence:
+            if v1.position == v2.position:
+              outputFile.write( line1 )
+              break
+            elif v1.position < v2.position:
+              break
 
 # If the reference sequence in the record from the first vcf file exists
 # in the second and has already been parsed, close and reopen the second
 # vcf file, then allow the search to begin again from the beginning of the
 # file.
 
-    elif vcfReferenceSequences[v1.referenceSequence] == True:
-      print >> sys.stderr, "WARNING: Hit reference sequence for second time."
-      print >> sys.stderr, "Check that vcf file is sorted."
-      exit(1)
+      elif vcfReferenceSequences[v1.referenceSequence] == True:
+        v2.closeVcf(options.vcfFiles[1])
+        v2.openVcf(options.vcfFiles[1])
+        v2.parseHeader(options.vcfFiles[1], False, False)
+        for ref in vcfReferenceSequences:
+          vcfReferenceSequences[ref] = False
+        for line2 in v2.filehandle:
+          v2.getRecord(line2)
+          if v1.referenceSequence == v2.referenceSequence:
+            if v1.position == v2.position:
+              outputFile.write( line1 )
+              break
+            elif v1.position < v2.position:
+              break
+
+    else:
+      continue
 
 # Close the vcf files.
 
