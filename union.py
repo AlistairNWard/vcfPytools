@@ -10,6 +10,106 @@ from vcfClass import *
 import tools
 from tools import *
 
+def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
+
+# If the second vcf file is at a different reference sequence, parse
+# through the file until records for this reference are found.
+
+  currentReferenceSequence = v1.referenceSequence
+  if v2.referenceSequence != v1.referenceSequence:
+    if vcfReferenceSequences[v2.referenceSequence] == "unparsed": vcfReferenceSequences[v2.referenceSequence] = "skipped"
+    while v2.referenceSequence != v1.referenceSequence:
+      line2 = v2.filehandle.readline()
+      if not line2:
+        print "Error occurred in union calculation."
+        print "Couldn't locate reference sequence:", v2.referenceSequence
+        exit(1)
+      v2.getRecord(line2)
+
+  while v1.referenceSequence == currentReferenceSequence:
+
+# If all of the entries in the second vcf file have been processed,
+# write the remaining entries from the first vcf file to the output.
+
+    if v2.referenceSequence != currentReferenceSequence: break
+
+    if v1.position < v2.position:
+      outputFile.write(line1)
+      line1 = v1.filehandle.readline()
+      if not line1: 
+        while v2.referenceSequence == currentReferenceSequence:
+          outputFile.write(line2)
+          line2 = v2.filehandle.readline()
+          if not line2: break
+          v2.getRecord(line2)
+        break
+      v1.getRecord(line1)
+
+    elif v1.position == v2.position:
+      outputFile.write(line1)
+      line1 = v1.filehandle.readline()
+      line2 = v2.filehandle.readline()
+      if not line1 or not line2: break
+      v1.getRecord(line1)
+      v2.getRecord(line2)
+
+    else:
+      if v2.referenceSequence == currentReferenceSequence:
+        outputFile.write(line2)
+        line2 = v2.filehandle.readline()
+        if not line2: 
+          while v1.referenceSequence == currentReferenceSequence:
+            outputFile.write(line1)
+            line1 = v1.filehandle.readline()
+            if not line1: break
+            v1.getRecord(line1)
+          break
+        v2.getRecord(line2)
+
+        while v2.referenceSequence == currentReferenceSequence and v2.position <= v1.position:
+          outputFile.write(line2)
+
+# If v2.position = v1.position, also iterate the record in v1.
+
+          if v1.position == v2.position:
+            line1 = v1.filehandle.readline()
+            if not line1:
+              while v2.referenceSequence == currentReferenceSequence:
+                outputFile.write(line2)
+                line2 = v2.filehandle.readline()
+                if not line2: break
+                v2.getRecord(line2)
+              break
+
+          line2 = v2.filehandle.readline()
+          if not line2:
+            while v1.referenceSequence == currentReferenceSequence:
+              outputFile.write(line1)
+              line1 = v1.filehandle.readline()
+              if not line1: break
+              v1.getRecord(line1)
+            break
+          v2.getRecord(line2)
+
+# If either vcf file still has more records for this reference
+# sequence, right them all to file.
+
+  if v1.referenceSequence == currentReferenceSequence and line1:
+    while v1.referenceSequence == currentReferenceSequence:
+      outputFile.write(line1)
+      line1 = v1.filehandle.readline()
+      if not line1: break
+      v1.getRecord(line1)
+
+  if v2.referenceSequence == currentReferenceSequence and line2:
+    while v2.referenceSequence == currentReferenceSequence:
+      outputFile.write(line2)
+      line2 = v2.filehandle.readline()
+      if not line2: break
+      v2.getRecord(line2)
+
+  return v1, v2, line1, line2, vcfReferenceSequences
+
 if __name__ == "__main__":
   main()
 
@@ -55,8 +155,8 @@ def main():
   v2.parseHeader(options.vcfFiles[1], False, False)
   for line2 in v2.filehandle:
     v2.getRecord(line2)
-    v2.referenceSequences[ v2.referenceSequence ] = False
-  vcfReferenceSequences = v2.referenceSequences
+    v2.referenceSequences[ v2.referenceSequence ] = "unparsed"
+  vcfReferenceSequences = v2.referenceSequences.copy()
   v2.closeVcf(options.vcfFiles[1])
 
 # Open the vcf files.
@@ -75,77 +175,66 @@ def main():
     print "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    writeHeader(outputFile, v) # tools.py
+    writeHeader(outputFile, v1) # tools.py
 
-# Get the first line of the second vcf file.
+# Get the first record from both vcf files.
 
-  for line2 in v2.filehandle:
-    v2.getRecord(line2)
-    break
+  line1 = v1.filehandle.readline()
+  line2 = v2.filehandle.readline()
+  v1.getRecord(line1)
+  v2.getRecord(line2)
 
-# Calculate the union.
+# Calculate the union. Check if the records from the two vcf files 
+# correspond to the same reference sequence.  If so, search up to 
+# the same position and write out the record if it exists in the 
+# second vcf file.
 
-  for line1 in v1.filehandle:
-    v1.getRecord(line1)
+  while True:
+    if vcfReferenceSequences.has_key(v1.referenceSequence) and vcfReferenceSequences[v1.referenceSequence] == "skipped":
+      v2.closeVcf(options.vcfFiles[1])
+      v2.openVcf(options.vcfFiles[1])
+      v2.parseHeader(options.vcfFiles[1], False, False)
+      line2 = v2.filehandle.readline()
+      v2.getRecord(line2)
+      for key, value in vcfReferenceSequences.iteritems():
+        if vcfReferenceSequences[key] == "skipped":
+          vcfReferenceSequences[key] = "unparsed"
 
-# Check if the records from the two vcf files correspond to the same
-# reference sequence.  If so, search up to the same position and
-# write out the record if it exists in the second vcf file.
+# If all the records from the first vcf file have been processed,
+# but the second vcf file contains reference sequences that have
+# not yet been dealt with, write these to the output file.
 
-    if v1.referenceSequence == v2.referenceSequence:
-      vcfReferenceSequences[v1.referenceSequence] = True
-      if v1.position == v2.position:
-        outputFile.write( line1 )
-      elif v1.position > v2.position:
-        for line2 in v2.filehandle:
-          v2.getRecord(line2)
-          if v1.referenceSequence != v2.referenceSequence:
-            break
-          if v2.position > v1.position:
-            break
-          elif v1.position == v2.position:
-            outputFile.write( line1 )
-            break
+    if not line1:
+      for key, value in vcfReferenceSequences.iteritems():
+        if vcfReferenceSequences[key] != "completed":
+          vcfReferenceSequences[key] = "completed"
+          while v2.referenceSequence == key:
+            outputFile.write(line2)
+            line2 = v2.filehandle.readline()
+            if not line2: break
+            v2.getRecord(line2)
 
-# If the reference sequence in the record from the first vcf file exists
-# in the second, but has not been read yet, parse through the second
-# vcf file until this reference sequence is reached, then search for the
-# same position.
+    if vcfReferenceSequences.has_key(v1.referenceSequence) and vcfReferenceSequences[v1.referenceSequence] != "completed":
+      vcfReferenceSequences[v1.referenceSequence] = "completed"
+      v1, v2, line1, line2, vcfReferenceSequences = calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile)
+    elif not v1.referenceSequence in vcfReferenceSequences:
+      currentReferenceSequence = v1.referenceSequence
+      while v1.referenceSequence == currentReferenceSequence:
+        outputFile.write(line1)
+        line1 = v1.filehandle.readline()
+        if not line1: break
+        v1.getRecord(line1)
 
-    elif vcfReferenceSequences.has_key(v.referenceSequence):
-      if vcfReferenceSequences[v1.referenceSequence] == False:
-        for line2 in v2.filehandle:
-          v2.getRecord(line2)
-          vcfReferenceSequences[v2.referenceSequence] = True
-          if v1.referenceSequence == v2.referenceSequence:
-            if v1.position == v2.position:
-              outputFile.write( line1 )
-              break
-            elif v1.position < v2.position:
-              break
+# If both vcf files have reached the end of the file, or if all
+# of the reference sequences in the second file have been dealt
+# with and the end of the first vcf file has been reached, the
+# union is complete.
 
-# If the reference sequence in the record from the first vcf file exists
-# in the second and has already been parsed, close and reopen the second
-# vcf file, then allow the search to begin again from the beginning of the
-# file.
-
-      elif vcfReferenceSequences[v1.referenceSequence] == True:
-        v2.closeVcf(options.vcfFiles[1])
-        v2.openVcf(options.vcfFiles[1])
-        v2.parseHeader(options.vcfFiles[1], False, False)
-        for ref in vcfReferenceSequences:
-          vcfReferenceSequences[ref] = False
-        for line2 in v2.filehandle:
-          v2.getRecord(line2)
-          if v1.referenceSequence == v2.referenceSequence:
-            if v1.position == v2.position:
-              outputFile.write( line1 )
-              break
-            elif v1.position < v2.position:
-              break
-
-    else:
-      continue
+    if not line1 and not line2: break
+    v2Complete = True
+    for key, value in vcfReferenceSequences.iteritems():
+      if vcfReferenceSequences[key] != "completed": v2Complete = False
+    if not line1 and v2Complete == True: break
 
 # Close the vcf files.
 

@@ -37,7 +37,9 @@ class vcf:
 # Parse the vcf header.
 
   def parseHeader(self, filename, writeOut, fullParse):
-    for rawLine in self.filehandle:
+    while True:
+      rawLine = self.filehandle.readline()
+      if rawLine is None: break
       line = rawLine.rstrip("\n")
       if line.startswith("##"):
         if fullParse == True:
@@ -161,6 +163,8 @@ class vcf:
       self.phased = False
     else:
       self.hasGenotypes = False
+
+    self.referenceSequences[self.referenceSequence] = True
 
 # Check for multiple alternate alleles.
 

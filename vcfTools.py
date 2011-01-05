@@ -4,7 +4,7 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.5"
+__version__ = "version 0.6"
 __date__ = "december 2010"
 
 def main():
