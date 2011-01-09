@@ -358,8 +358,8 @@ def main():
     else:
       for tag in options.distributions:
         if tag.lower() == "all":
-          print "If distributions for all info fields are required, include -d all only"
-          exit(0)
+          print >> sys.stderr, "If distributions for all info fields are required, include -d all only"
+          exit(1)
 
 # Check that the requested info fields exist in the vcf file and
 # initialise statistics dictionaries.

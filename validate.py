@@ -99,6 +99,6 @@ def main():
 # program would have terminated).
 
   if sortError == True:
-    print "vcf file is not sorted."
+    print >> sys.stderr, "vcf file is not sorted."
   else:
-    print "No errors found with vcf file"
+    print >> sys.stderr, "No errors found with vcf file"

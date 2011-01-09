@@ -4,7 +4,7 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.8"
+__version__ = "version 0.9"
 __date__ = "january 2011"
 
 def main():
@@ -27,7 +27,7 @@ def main():
   if len(sys.argv) > 1:
     tool = sys.argv[1]
   else:
-    print usage
+    print >> sys.stderr, usage
     exit(1)
 
   if tool == "dbsnp":
@@ -58,10 +58,10 @@ def main():
     import validate
     validate.main()
   elif tool == "--help" or tool == "-h" or tool == "?":
-    print usage
+    print >> sys.stderr, usage
   else:
-    print "Unknown tool: ",tool
-    print "\n", usage
+    print >> sys.stderr, "Unknown tool: ",tool
+    print >> sys.stderr, "\n", usage
     exit(1)
 
 if __name__ == "__main__":

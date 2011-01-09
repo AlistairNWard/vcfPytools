@@ -10,7 +10,7 @@ from vcfClass import *
 import tools
 from tools import *
 
-def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
+def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile, priority):
 
 # If the second vcf file is at a different reference sequence, parse
 # through the file until records for this reference are found.
@@ -21,8 +21,8 @@ def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
     while v2.referenceSequence != v1.referenceSequence:
       line2 = v2.filehandle.readline()
       if not line2:
-        print "Error occurred in union calculation."
-        print "Couldn't locate reference sequence:", v2.referenceSequence
+        print >> sys.stderr, "Error occurred in union calculation."
+        print >> sys.stderr, "Couldn't locate reference sequence:", v2.referenceSequence
         exit(1)
       v2.getRecord(line2)
 
@@ -46,7 +46,12 @@ def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
       v1.getRecord(line1)
 
     elif v1.position == v2.position:
-      outputFile.write(line1)
+      if priority == 0:
+        if v1.quality >= v2.quality: outputFile.write(line1)
+        else: outputFile.write(line2)
+      elif priority == 1: outputFile.write(line1)
+      elif priority == 2: outputFile.write(line2)
+
       line1 = v1.filehandle.readline()
       line2 = v2.filehandle.readline()
 
@@ -69,11 +74,16 @@ def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
         v2.getRecord(line2)
 
         while v2.referenceSequence == currentReferenceSequence and v2.position <= v1.position:
-          outputFile.write(line2)
 
 # If v2.position = v1.position, also iterate the record in v1.
 
           if v1.position == v2.position:
+            if priority == 0:
+              if v1.quality >= v2.quality: outputFile.write(line1)
+              else: outputFile.write(line2)
+            elif priority == 1: outputFile.write(line1)
+            elif priority == 2: outputFile.write(line2)
+
             line1 = v1.filehandle.readline()
             if not line1:
               while v2.referenceSequence == currentReferenceSequence:
@@ -82,6 +92,10 @@ def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
                 if not line2: break
                 v2.getRecord(line2)
               break
+
+# Write out the record from v2, when the positions are not equal.
+
+          else: outputFile.write(line2)
 
           line2 = v2.filehandle.readline()
           if not line2:
@@ -123,10 +137,13 @@ def main():
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",
-                    dest="vcfFiles", help="input vcf files:")
+                    dest="vcfFiles", help="input vcf files")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
+  parser.add_option("-p", "--priority-file",
+                    action="store", type="string",
+                    dest="priorityFile", help="output record from this file")
 
   (options, args) = parser.parse_args()
 
@@ -147,6 +164,25 @@ def main():
   else:
     outputFile = open(options.output, 'w')
     writeOut = True
+
+# If no priority is given to either file (from the -p command line
+# option), set priorityQuality to True.  In this case, the record
+# written to the output file will be that with the higest quality.
+# If a priority is given, check that the file is one of the input
+# vcf files.
+
+  if options.priorityFile == None:
+    priority = 0
+  else:
+    if options.priorityFile != options.vcfFiles[0] and options.priorityFile != options.vcfFiles[1]:
+      print >> sys.stderr, "The file in --priority-file (-p) must be one of the two input vcf files."
+      exit(1)
+
+    elif options.priorityFile == options.vcfFiles[0]:
+      priority = 1
+
+    elif options.priorityFile == options.vcfFiles[1]:
+      priority = 2
 
   v1 = vcf() # Define vcf object.
   v2 = vcf() # Define vcf object.
@@ -174,7 +210,7 @@ def main():
 # Check that the header for the two files contain the same samples.
 
   if v1.samplesList != v2.samplesList:
-    print "vcf files contain different samples (or sample order)."
+    print >> sys.stderr, "vcf files contain different samples (or sample order)."
     exit(1)
   else:
     writeHeader(outputFile, v1) # tools.py
@@ -218,7 +254,7 @@ def main():
 
     if vcfReferenceSequences.has_key(v1.referenceSequence) and vcfReferenceSequences[v1.referenceSequence] != "completed":
       vcfReferenceSequences[v1.referenceSequence] = "completed"
-      v1, v2, line1, line2, vcfReferenceSequences = calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile)
+      v1, v2, line1, line2, vcfReferenceSequences = calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile, priority)
     elif not v1.referenceSequence in vcfReferenceSequences:
       currentReferenceSequence = v1.referenceSequence
       while v1.referenceSequence == currentReferenceSequence:

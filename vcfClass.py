@@ -30,7 +30,7 @@ class vcf:
     else:
       exists = os.path.exists(filename)
       if exists == False:
-        print "Failed to find file: ",filename
+        print >> sys.stderr, "Failed to find file: ",filename
         exit(1)
 
       self.filehandle = open(filename,"r")
@@ -52,7 +52,7 @@ class vcf:
 # Check if this info field has already been defined.
 
             if self.infoHeaderTags.has_key(id[0]):
-              print "Info tag \"", id[0], "\" is defined multiple times in the header."
+              print >> sys.stderr, "Info tag \"", id[0], "\" is defined multiple times in the header."
               exit(1)
 
 # Determine the number of entries, entry type and description.
@@ -66,8 +66,8 @@ class vcf:
             try:
               number = int(number[0])
             except ValueError:
-              print "\nError parsing header.  Problem with info tag:", id[0]
-              print "Number of fields associated with this tag is not an integer."
+              print >> sys.stderr, "\nError parsing header.  Problem with info tag:", id[0]
+              print >> sys.stderr, "Number of fields associated with this tag is not an integer."
               exit(1)
 
             self.infoHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
@@ -79,7 +79,7 @@ class vcf:
 # Check if this format field has already been defined.
 
             if self.formatHeaderTags.has_key(id[0]):
-              print "Format tag \"", id[0], "\"is defined multiple times in the header."
+              print >> sys.stderr, "Format tag \"", id[0], "\"is defined multiple times in the header."
               exit(1)
 
 # Determine the number of entries, entry type and description.
@@ -93,8 +93,8 @@ class vcf:
             try:
               number = int(number[0])
             except ValueError:
-              print "\nError parsing header.  Problem with format tag:", id[0]
-              print "Number of fields associated with this tag is not an integer."
+              print >> sys.stderr, "\nError parsing header.  Problem with format tag:", id[0]
+              print >> sys.stderr, "Number of fields associated with this tag is not an integer."
               exit(1)
 
             self.formatHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
@@ -110,16 +110,16 @@ class vcf:
         if numberInfoFields > 8:
           if numberInfoFields - 9 == 1:
             if writeOut == True:
-              print numberInfoFields - 9, " sample present in vcf file in: ", filename
+              print >> sys.stderr, numberInfoFields - 9, " sample present in vcf file in: ", filename
           else:
             if writeOut == True:
-              print numberInfoFields - 9, " samples present in vcf file in: ", filename
+              print >> sys.stderr, numberInfoFields - 9, " samples present in vcf file in: ", filename
           self.samplesList = infoFields[9:]
           self.genotypes = True
         else:
           if writeOut == True:
-            print "No samples present in the header."
-            print "No genotype information available."
+            print >> sys.stderr, "No samples present in the header."
+            print >> sys.stderr, "No genotype information available."
         break
 
 # If there is no header in the vcf file, close and reopen the vcf file, so that
@@ -138,7 +138,7 @@ class vcf:
 
   def checkInfoFields(self, tag):
     if self.infoHeaderTags.has_key(tag) == False:
-      print "Info tag \"", tag, "\" does not exist in the header."
+      print >> sys.stderr, "Info tag \"", tag, "\" does not exist in the header."
       exit(1)
 
 # Get the next line of information from the vcf file.
@@ -258,7 +258,7 @@ class vcf:
         if numberValues == 0 and type(self.infoTags[tag]) == bool:
           result = True
         elif numberValues != 0 and type(self.infoTags[tag]) == bool:
-          print "ERROR"
+          print >> sys.stderr, "ERROR"
           exit(1)
         else:
           fields = self.infoTags[tag].split(",")
@@ -379,40 +379,40 @@ class vcf:
     exit(1)
 
   def numberSamplesError(self):
-    print "\nError encountered when attempting to read:"
-    print "\treference sequence: ", self.referenceSequence
-    print "\tposition:           ", self.position
-    print "\nThe number of genotypes is different to the number of samples"
+    print >> sys.stderr, "\nError encountered when attempting to read:"
+    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
+    print >> sys.stderr, "\tposition:           ", self.position
+    print >> sys.stderr, "\nThe number of genotypes is different to the number of samples"
     exit(1)
 
   def tagExistenceError(self, tag):
-    print "\nError encountered when attempting to read:"
-    print "\treference sequence: ", self.referenceSequence
-    print "\tposition:           ", self.position
-    print "\tsample:             ", sample
-    print "\nThe information tag:", tag, "does not exist in the header."
+    print >> sys.stderr, "\nError encountered when attempting to read:"
+    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
+    print >> sys.stderr, "\tposition:           ", self.position
+    print >> sys.stderr, "\tsample:             ", sample
+    print >> sys.stderr, "\nThe information tag:", tag, "does not exist in the header."
     exit(1)
 
   def numberValuesError(self, tag):
-    print "\nError encountered when attempting to read:"
-    print "\treference sequence: ", self.referenceSequence
-    print "\tposition:           ", self.position
-    print "\tinformation tag:    ", tag
-    print "\nUnexpected number of entries"
+    print >> sys.stderr, "\nError encountered when attempting to read:"
+    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
+    print >> sys.stderr, "\tposition:           ", self.position
+    print >> sys.stderr, "\tinformation tag:    ", tag
+    print >> sys.stderr, "\nUnexpected number of entries"
     exit(1)
 
   def valueError(self, tag):
-    print "\nError encountered when attempting to read:"
-    print "\ttag:                ", tag
-    print "\treference sequence: ", self.referenceSequence
-    print "\tposition:           ", self.position
-    print "\nError in type."
+    print >> sys.stderr, "\nError encountered when attempting to read:"
+    print >> sys.stderr, "\ttag:                ", tag
+    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
+    print >> sys.stderr, "\tposition:           ", self.position
+    print >> sys.stderr, "\nError in type."
     exit(1)
 
   def indexError(self, tag):
-    print "\nError encountered when attempting to read:"
-    print "\ttag:                ", tag
-    print "\treference sequence: ", self.referenceSequence
-    print "\tposition:           ", self.position
-    print "\nInsufficient values. Expected:", self.infoHeaderTags[tag][0]
+    print >> sys.stderr, "\nError encountered when attempting to read:"
+    print >> sys.stderr, "\ttag:                ", tag
+    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
+    print >> sys.stderr, "\tposition:           ", self.position
+    print >> sys.stderr, "\nInsufficient values. Expected:", self.infoHeaderTags[tag][0]
     exit(1)

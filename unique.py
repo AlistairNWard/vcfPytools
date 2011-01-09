@@ -21,8 +21,8 @@ def calculateUnique(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
     while v2.referenceSequence != v1.referenceSequence:
       line2 = v2.filehandle.readline()
       if not line2:
-        print "Error occurred in unique fraction calculation."
-        print "Couldn't locate reference sequence:", v2.referenceSequence
+        print >> sys.stderr, "Error occurred in unique fraction calculation."
+        print >> sys.stderr, "Couldn't locate reference sequence:", v2.referenceSequence
         exit(1)
       v2.getRecord(line2)
 
@@ -123,7 +123,7 @@ def main():
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",
-                    dest="vcfFiles", help="input vcf files:")
+                    dest="vcfFiles", help="input vcf files")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
@@ -174,12 +174,12 @@ def main():
 # Make it clear to the user which unique fraction is being
 # calculated.  It is always the first vcf file inputted.
 
-  print "\nGenerating records unique to:", options.vcfFiles[0]
+  print >> sys.stderr, "\nGenerating records unique to:", options.vcfFiles[0]
 
 # Check that the header for the two files contain the same samples.
 
   if v1.samplesList != v2.samplesList:
-    print "vcf files contain different samples (or sample order)."
+    print >> sys.stderr, "vcf files contain different samples (or sample order)."
     exit(1)
   else:
     writeHeader(outputFile, v1) # tools.py

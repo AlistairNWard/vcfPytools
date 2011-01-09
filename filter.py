@@ -14,7 +14,7 @@ if __name__ == "__main__":
   main()
 
 def filterFail(text, file):
-  print text
+  print >> sys.stderr, text
   if file != None:
     os.remove(file)
   exit(1)

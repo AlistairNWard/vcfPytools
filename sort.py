@@ -107,7 +107,6 @@ def main():
 # records to the output file in order.
 
   for referenceSequence in v.referenceSequencesList:
-    print "reference sequence: ", referenceSequence
     v1 = vcf()
     positionsFile = "positions." + referenceSequence + ".vcfTools.tmp"
     recordsFile = "records." + referenceSequence + ".vcfTools.tmp"
@@ -176,7 +175,7 @@ def main():
         if not position: break
 
       elif position > v1.position:
-        print "I don't know how this happened."
+        print >> sys.stderr, "I don't know how this happened."
 
 # Check if any records remain in stored files.  If so, write them out
 # to the output file in order.
