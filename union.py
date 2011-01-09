@@ -49,9 +49,11 @@ def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
       outputFile.write(line1)
       line1 = v1.filehandle.readline()
       line2 = v2.filehandle.readline()
+
+      if line1: v1.getRecord(line1)
+      if line2: v2.getRecord(line2)
+
       if not line1 or not line2: break
-      v1.getRecord(line1)
-      v2.getRecord(line2)
 
     else:
       if v2.referenceSequence == currentReferenceSequence:
@@ -92,7 +94,7 @@ def calculateUnion(v1, v2, line1, line2, vcfReferenceSequences, outputFile):
           v2.getRecord(line2)
 
 # If either vcf file still has more records for this reference
-# sequence, right them all to file.
+# sequence, write them all to file.
 
   if v1.referenceSequence == currentReferenceSequence and line1:
     while v1.referenceSequence == currentReferenceSequence:

@@ -4,8 +4,8 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.7"
-__date__ = "december 2010"
+__version__ = "version 0.8"
+__date__ = "january 2011"
 
 def main():
 
@@ -18,6 +18,7 @@ def main():
           "  sort:\n\tSort a vcf file.\n" + \
           "  stats:\n\tGenerate statistics from a vcf file.\n" + \
           "  union:\n\tGenerate the union of two vcf files.\n" + \
+          "  unique:\n\tGenerate the unique fraction from two vcf files.\n" + \
           "  validate:\n\tValidate the input vcf file.\n\n" + \
           "vcfTools.py [tool] --help for information on a specific tool."
 
@@ -50,6 +51,9 @@ def main():
   elif tool == "union":
     import union
     union.main()
+  elif tool == "unique":
+    import unique
+    unique.main()
   elif tool == "validate":
     import validate
     validate.main()
