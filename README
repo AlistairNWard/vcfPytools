@@ -1,0 +1,48 @@
+------------------------------------------------------------------------
+README: vcfTools
+------------------------------------------------------------------------
+
+vcfTools is a set of tools in python for manipulation vcf v4.0 files.
+
+------------------------------------------------------------------------
+Available tools:
+------------------------------------------------------------------------
+
+	dbsnp - annotate a vcf file with dbSNP rsid values.
+	filter - filter the vcf file.
+	intersect - generate the intersection of two vcf files.
+	merge - merge any number of vcf files
+	sort - sort a vcf file
+	stats - generate statistics on defined parameters.
+	union - generate the union of two vcf files.
+	unique - generate a vcf file of the unique records in a vcf file.
+	validate - validate a vcf file.
+
+------------------------------------------------------------------------
+dbsnp:
+------------------------------------------------------------------------
+
+python vcfTools.py dbsnp [options]
+
+options:
+	--in (-i): 	input vcf file
+	--out (-o):	output vcf file
+	--dbsnp (-d):	input dbSNP vcf file
+
+Annotate the vcf file with dbSNP rsid values.  The input dbSNP file must
+also be in vcf v4.0 format.
+
+Only dbSNP entries with VC=SNP are included.
+
+------------------------------------------------------------------------
+filter:
+------------------------------------------------------------------------
+
+python vcfTools.py filter [options]
+
+options:
+	--in (-i):	input vcf file
+	--out (-o):	output vcf file
+	--quality (-q):	filter on defined quality score
+	--info (-n):	filter on entries in the info string
+
