@@ -209,3 +209,4 @@ def main():
 
   v1.closeVcf(options.vcfFiles[0])
   v2.closeVcf(options.vcfFiles[1])
+  exit(0)

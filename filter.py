@@ -44,7 +44,7 @@ def main():
 
   if options.vcfFile == None:
     parser.print_help()
-    print >> sys.stderr, "\nInput vcf file (-i, --input) is required for dbsnp annotation."
+    print >> sys.stderr, "\nInput vcf file (-i, --input) is required for vcf filtering."
     exit(1)
 
 # Set the output file to stdout if no output file was specified.

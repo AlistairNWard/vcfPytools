@@ -15,6 +15,7 @@ class vcf:
     self.genotypes = False
     self.infoField = {}
     self.referenceSequences = {}
+    self.referenceSequencesList = []
     self.referenceSequence = ""
     self.position = -1
     self.samplesList = []
@@ -154,6 +155,7 @@ class vcf:
     self.info       = vcfEntries[7]
     self.hasInfo    = True
     self.infoTags   = {}
+
     if len(vcfEntries) > 8:
       self.genotypeFormatString = vcfEntries[8]
       self.genotypeFormats = {}
@@ -164,7 +166,14 @@ class vcf:
     else:
       self.hasGenotypes = False
 
-    self.referenceSequences[self.referenceSequence] = True
+# Add the reference sequence to the dictionary.  If it didn't previously
+# exist append the reference sequence to the end of the list as well. 
+# This ensures that the order in which the reference sequences appeared
+# in the header can be preserved.
+
+    if self.referenceSequence not in self.referenceSequences:
+      self.referenceSequences[self.referenceSequence] = True
+      self.referenceSequencesList.append(self.referenceSequence)
 
 # Check for multiple alternate alleles.
 

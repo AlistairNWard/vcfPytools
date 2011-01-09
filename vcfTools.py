@@ -4,7 +4,7 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.6"
+__version__ = "version 0.7"
 __date__ = "december 2010"
 
 def main():
@@ -15,6 +15,7 @@ def main():
           "  filter:\n\tFilter the vcf file.\n" + \
           "  intersect:\n\tGenerate the intersection of two vcf files.\n" + \
           "  merge:\n\tMerge a list of vcf files.\n" + \
+          "  sort:\n\tSort a vcf file.\n" + \
           "  stats:\n\tGenerate statistics from a vcf file.\n" + \
           "  union:\n\tGenerate the union of two vcf files.\n" + \
           "  validate:\n\tValidate the input vcf file.\n\n" + \
@@ -40,6 +41,9 @@ def main():
   elif tool == "merge":
     import merge
     merge.main()
+  elif tool == "sort":
+    import sort
+    sort.main()
   elif tool == "stats":
     import stats
     stats.main()
