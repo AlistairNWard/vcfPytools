@@ -19,6 +19,22 @@ Available tools:
 	validate - validate a vcf file.
 
 ------------------------------------------------------------------------
+General information:
+------------------------------------------------------------------------
+
+  The tools in vcfTools are written to try and minimise the memroy
+usage.  As a result, they are not necessarily as quick or as efficient
+as they could be.
+
+  All of the tools can accept a piped vcf as input.  This means that
+the filter tool could be used, for example, and the output piped into
+another instance of vcfTools.  If the input is coming from a pipe, the
+input vcf file must be listed as "stdin" and must be the first of the
+defined input files.
+
+  If no output file is defined, the output will be sent to stdout.
+
+------------------------------------------------------------------------
 dbsnp:
 ------------------------------------------------------------------------
 
@@ -29,10 +45,10 @@ options:
 	--out (-o):	output vcf file
 	--dbsnp (-d):	input dbSNP vcf file
 
-Annotate the vcf file with dbSNP rsid values.  The input dbSNP file must
+  Annotate the vcf file with dbSNP rsid values.  The input dbSNP file must
 also be in vcf v4.0 format.
 
-Only dbSNP entries with VC=SNP are included.
+  Only dbSNP entries with VC=SNP are included.
 
 ------------------------------------------------------------------------
 filter:
@@ -46,3 +62,142 @@ options:
 	--quality (-q):	filter on defined quality score
 	--info (-n):	filter on entries in the info string
 
+  Option --quality (-q) will check the variant quality for each record
+and if it is below the defined value, the filter field will be
+populated with the filter entry Q[value].
+
+  Any value in the info string can be used for filtering by using the
+--info (-n) command line option.  This option takes two values. For 
+example, --info DP 10 would filter out all variant with a depth (DP)
+less than 10 and the filter field would be populated with DP10.
+
+  This command line argument can be defined as many times as required.
+
+------------------------------------------------------------------------
+intersect:
+------------------------------------------------------------------------
+
+python vcfTools.py intersect [options]
+
+options:
+	--in (-i):		input vcf files
+	--out (-o):		output vcf file
+        --priority-file (-p):	output record from this file
+
+  Two input vcf files are required as input and the intersection of
+these two files is generated and sent to the output.  These files must
+be sorted by genomic coordinate to function correctly, although the
+reference sequence order is no important.
+
+  If the --priority-file (-p) argument is set (this must be equal to one
+of the input vcf files), then the record written to the output will come
+from this file.  If this argument is not set, the record with the
+highest quality is written out.
+
+------------------------------------------------------------------------
+merge:
+------------------------------------------------------------------------
+
+python vcfTools.py merge [options]
+
+options:
+	--in (-i):	input vcf files
+	--out (-o):	output vcf file
+
+  Any number of input vcf files are merged into a single file.  This is
+achieved by appending all the files to a single output and so if the
+input files contain records for the same reference sequence, the
+resulting output file will not be sorted.
+
+------------------------------------------------------------------------
+sort:
+------------------------------------------------------------------------
+
+python vcfTools.py sort [options]
+
+options:
+	--in (-i):	input vcf file
+	--out (-o):	output vcf file
+
+  The input vcf file is sorted by genomic coordinates.
+
+------------------------------------------------------------------------
+stats:
+------------------------------------------------------------------------
+
+python vcfTools.py stats [options]
+
+options:
+	--in (-i):		input vcf file
+	--out (-o):		output statistics file
+        --distributions (-d):	calculate defined distributions
+	--filter-pass (-f):	only consider records that PASS
+	--plot (-p):		plot distributions
+
+  Generate statistics from the vcf file.  If only the input file is
+specified, the stats tool calculates statistics relating to the ts/tv
+ratio and dbSNP membership for all reference sequences, filters and
+totals.  The dbSNP percentage is only calculated if the vcf file is
+annotated with dbSNP rsid values.  The dbsnp tool can be used to perform
+this annotation.
+
+  The --distributions (-d) argument allows distributions to be created
+for the specified info field.  As many distributions as there are info
+strings can be requested.  --distriutions all will create distributions
+for all of the fields in the info string.
+
+  Including the --filter-pass (-f) ensures that distributions are only
+built using records that are listed as "PASS", thus omitting all
+filtered records.
+
+------------------------------------------------------------------------
+union:
+------------------------------------------------------------------------
+
+python vcfTools.py union [options]
+
+options:
+	--in (-i):	input vcf files
+	--out (-o):	output vcf file
+        --priority-file (-p):	output record from this file
+
+  Generate the union of the two input vcf files.  The comments included
+in the explanation of the intersection tool are applicable to this tool.
+
+------------------------------------------------------------------------
+unique:
+------------------------------------------------------------------------
+
+python vcfTools.py unique [options]
+
+options:
+	--in (-i):	input vcf files
+	--out (-o):	output vcf file
+
+  Output the records that are unique to the first inputted vcf file
+when compared with another vcf file.
+
+------------------------------------------------------------------------
+validate:
+------------------------------------------------------------------------
+
+python vcfTools.py validate [options]
+
+options:
+	--in (-i):	input vcf file
+	--out (-o):	output vcf file
+
+  Validate the vcf file.  This performs the following checks:
+
+1. Check that the vcf file is sorted.  The order of the reference
+sequences is not important, but all entries for a reference sequence
+must appear together and be sorted by genomic coordinate within this
+block.
+
+2. All info string entries are checked with the information in the
+header to ensure that there are the correct number and type of values.
+
+3. Genotype fields are checked to ensure that each listed sample has a
+genotype and that the data is consistent with the format string for that
+record.  All of the genotype entries are also checked to ensure that
+they are consistent with the description in the header.

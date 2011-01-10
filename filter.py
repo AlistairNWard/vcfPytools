@@ -28,12 +28,12 @@ def main():
   parser.add_option("-i", "--in",
                     action="store", type="string",
                     dest="vcfFile", help="input vcf file")
-  parser.add_option("-q", "--quality",
-                    action="store", type="int",
-                    dest="quality", help="filter out SNPs with qualities lower than selected value")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
+  parser.add_option("-q", "--quality",
+                    action="store", type="int",
+                    dest="quality", help="filter out SNPs with qualities lower than selected value")
   parser.add_option("-n", "--info",
                    action="append", type="string", nargs=2,
                    dest="infoFilters", help="filter based on entries in the info string")

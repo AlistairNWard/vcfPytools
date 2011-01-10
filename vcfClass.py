@@ -214,7 +214,8 @@ class vcf:
 # Check that the number of genotype fields is equal to the number of samples
 
       if len(self.samplesList) != len(self.genotypes):
-        self.numberSamplesError()
+        text = "The number of genotypes is different to the number of samples"
+        self.generalError(text, "", "")
 
 # Add the genotype information to a dictionary.
 
@@ -263,13 +264,15 @@ class vcf:
         else:
           fields = self.infoTags[tag].split(",")
           if len(fields) != numberValues:
-            self.numberValuesError(tag)
+            text = "Unexpected number of entries"
+            self.generalError(text, "information tag:", tag)
 
           for i in range(infoNumber):
             try:
               result.append(fields[i])
             except IndexError:
-              self.indexError(tag)
+              text = "Insufficient values. Expected: " + self.infoHeaderTags[tag][0]
+              self.generalError(text, "tag:", tag)
       else:
         numberValues = 0
 
@@ -376,43 +379,4 @@ class vcf:
     if field != "":
       print >> sys.stderr, "\t", field, ":             ", fieldValue
     print >> sys.stderr,  "\n", text
-    exit(1)
-
-  def numberSamplesError(self):
-    print >> sys.stderr, "\nError encountered when attempting to read:"
-    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
-    print >> sys.stderr, "\tposition:           ", self.position
-    print >> sys.stderr, "\nThe number of genotypes is different to the number of samples"
-    exit(1)
-
-  def tagExistenceError(self, tag):
-    print >> sys.stderr, "\nError encountered when attempting to read:"
-    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
-    print >> sys.stderr, "\tposition:           ", self.position
-    print >> sys.stderr, "\tsample:             ", sample
-    print >> sys.stderr, "\nThe information tag:", tag, "does not exist in the header."
-    exit(1)
-
-  def numberValuesError(self, tag):
-    print >> sys.stderr, "\nError encountered when attempting to read:"
-    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
-    print >> sys.stderr, "\tposition:           ", self.position
-    print >> sys.stderr, "\tinformation tag:    ", tag
-    print >> sys.stderr, "\nUnexpected number of entries"
-    exit(1)
-
-  def valueError(self, tag):
-    print >> sys.stderr, "\nError encountered when attempting to read:"
-    print >> sys.stderr, "\ttag:                ", tag
-    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
-    print >> sys.stderr, "\tposition:           ", self.position
-    print >> sys.stderr, "\nError in type."
-    exit(1)
-
-  def indexError(self, tag):
-    print >> sys.stderr, "\nError encountered when attempting to read:"
-    print >> sys.stderr, "\ttag:                ", tag
-    print >> sys.stderr, "\treference sequence: ", self.referenceSequence
-    print >> sys.stderr, "\tposition:           ", self.position
-    print >> sys.stderr, "\nInsufficient values. Expected:", self.infoHeaderTags[tag][0]
     exit(1)

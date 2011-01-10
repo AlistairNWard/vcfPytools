@@ -304,12 +304,12 @@ def main():
                     dest="vcfFile", help="input vcf file (stdin for piped vcf)")
   parser.add_option("-o", "--out",
                     action="store", type="string",
-                    dest="output", help="output vcf file")
+                    dest="output", help="output statistics file")
   parser.add_option("-d", "--distributions",
                     action="append", type="string",
-                    dest="distributions", help="plot distributions of variables in the info fields" + \
+                    dest="distributions", help="calculate distributions of variables in the info fields" + \
                     " (all includes all info fields in header)")
-  parser.add_option("-f", "--filter_pass",
+  parser.add_option("-f", "--filter-pass",
                     action="store_true", default=False,
                     dest="passed", help="only consider records whose filter is listed as PASS")
   parser.add_option("-p", "--plot",
