@@ -1,8 +1,8 @@
 ------------------------------------------------------------------------
-README: vcfTools
+README: vcfPytools
 ------------------------------------------------------------------------
 
-vcfTools is a set of tools in python for manipulation vcf v4.0 files.
+vcfPytools is a set of tools in python for manipulation vcf v4.0 files.
 
 ------------------------------------------------------------------------
 Available tools:
@@ -22,13 +22,13 @@ Available tools:
 General information:
 ------------------------------------------------------------------------
 
-  The tools in vcfTools are written to try and minimise the memroy
+  The tools in vcfPytools are written to try and minimise the memroy
 usage.  As a result, they are not necessarily as quick or as efficient
 as they could be.
 
   All of the tools can accept a piped vcf as input.  This means that
 the filter tool could be used, for example, and the output piped into
-another instance of vcfTools.  If the input is coming from a pipe, the
+another instance of vcfPytools.  If the input is coming from a pipe, the
 input vcf file must be listed as "stdin" and must be the first of the
 defined input files.
 
@@ -38,7 +38,7 @@ defined input files.
 dbsnp:
 ------------------------------------------------------------------------
 
-python vcfTools.py dbsnp [options]
+python vcfPytools.py dbsnp [options]
 
 options:
 	--in (-i): 	input vcf file
@@ -54,7 +54,7 @@ also be in vcf v4.0 format.
 filter:
 ------------------------------------------------------------------------
 
-python vcfTools.py filter [options]
+python vcfPytools.py filter [options]
 
 options:
 	--in (-i):	input vcf file
@@ -77,7 +77,7 @@ less than 10 and the filter field would be populated with DP10.
 intersect:
 ------------------------------------------------------------------------
 
-python vcfTools.py intersect [options]
+python vcfPytools.py intersect [options]
 
 options:
 	--in (-i):		input vcf files
@@ -98,7 +98,7 @@ highest quality is written out.
 merge:
 ------------------------------------------------------------------------
 
-python vcfTools.py merge [options]
+python vcfPytools.py merge [options]
 
 options:
 	--in (-i):	input vcf files
@@ -113,7 +113,7 @@ resulting output file will not be sorted.
 sort:
 ------------------------------------------------------------------------
 
-python vcfTools.py sort [options]
+python vcfPytools.py sort [options]
 
 options:
 	--in (-i):	input vcf file
@@ -125,7 +125,7 @@ options:
 stats:
 ------------------------------------------------------------------------
 
-python vcfTools.py stats [options]
+python vcfPytools.py stats [options]
 
 options:
 	--in (-i):		input vcf file
@@ -154,7 +154,7 @@ filtered records.
 union:
 ------------------------------------------------------------------------
 
-python vcfTools.py union [options]
+python vcfPytools.py union [options]
 
 options:
 	--in (-i):	input vcf files
@@ -168,7 +168,7 @@ in the explanation of the intersection tool are applicable to this tool.
 unique:
 ------------------------------------------------------------------------
 
-python vcfTools.py unique [options]
+python vcfPytools.py unique [options]
 
 options:
 	--in (-i):	input vcf files
@@ -181,7 +181,7 @@ when compared with another vcf file.
 validate:
 ------------------------------------------------------------------------
 
-python vcfTools.py validate [options]
+python vcfPytools.py validate [options]
 
 options:
 	--in (-i):	input vcf file

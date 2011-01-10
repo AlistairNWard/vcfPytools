@@ -14,7 +14,7 @@ def main():
 
 # Parse the command line options
 
-  usage = "Usage: vcfTools.py validate [options]"
+  usage = "Usage: vcfPytools.py validate [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="store", type="string",

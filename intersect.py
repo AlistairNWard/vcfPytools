@@ -126,7 +126,7 @@ def main():
 
 # Parse the command line options
 
-  usage = "Usage: vcfTools.py intersection [options]"
+  usage = "Usage: vcfPytools.py intersection [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",

@@ -133,7 +133,7 @@ def main():
 
 # Parse the command line options
 
-  usage = "Usage: vcfTools.py union [options]"
+  usage = "Usage: vcfPytools.py union [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",

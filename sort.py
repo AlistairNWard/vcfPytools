@@ -17,7 +17,7 @@ def main():
 
 # Parse the command line options
 
-  usage = "Usage: vcfTools.py sort [options]"
+  usage = "Usage: vcfPytools.py sort [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="store", type="string",
@@ -64,8 +64,8 @@ def main():
   tempPositionsFiles = {}
   for line in v.filehandle:
     v.getRecord(line)
-    tempPositionsFile = "positions." + v.referenceSequence + ".vcfTools.tmp"
-    tempFile = "records." + v.referenceSequence + ".vcfTools.tmp"
+    tempPositionsFile = "positions." + v.referenceSequence + ".vcfPytools.tmp"
+    tempFile = "records." + v.referenceSequence + ".vcfPytools.tmp"
     if tempFile not in tempFiles:
       tempFilehandle = open(tempFile,'w')
       tempPositionsFilehandle = open(tempPositionsFile,'w')
@@ -108,8 +108,8 @@ def main():
 
   for referenceSequence in v.referenceSequencesList:
     v1 = vcf()
-    positionsFile = "positions." + referenceSequence + ".vcfTools.tmp"
-    recordsFile = "records." + referenceSequence + ".vcfTools.tmp"
+    positionsFile = "positions." + referenceSequence + ".vcfPytools.tmp"
+    recordsFile = "records." + referenceSequence + ".vcfPytools.tmp"
     positionsFilehandle = open(positionsFile, 'r')
     v1.openVcf(recordsFile)
 
@@ -134,7 +134,7 @@ def main():
 # write this record to file and delete the dictionay key.
 
       if position in storedRecords:
-        storedTemp = "stored." + str(position) + ".vcfTools.tmp"
+        storedTemp = "stored." + str(position) + ".vcfPytools.tmp"
         storedTempFilehandle = open(storedTemp,'r')
         storedLine = storedTempFilehandle.readline()
         outputFile.write( storedLine )
@@ -151,7 +151,7 @@ def main():
 # position to a dictionary.
 
       elif position < v1.position:
-        storedTemp = "stored." + str(v1.position) + ".vcfTools.tmp"
+        storedTemp = "stored." + str(v1.position) + ".vcfPytools.tmp"
         storedTempFilehandle = open(storedTemp,'w')
         storedTempFilehandle.write( line )
         storedTempFilehandle.close()
@@ -182,7 +182,7 @@ def main():
 
     if len( storedRecords ) > 0:
       for position in sorted(storedRecords):
-        storedTemp = "stored." + str(position) + ".vcfTools.tmp"
+        storedTemp = "stored." + str(position) + ".vcfPytools.tmp"
         storedTempFilehandle = open(storedTemp,'r')
         storedLine = storedTempFilehandle.readline()
         outputFile.write( storedLine )

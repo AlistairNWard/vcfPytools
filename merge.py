@@ -11,7 +11,7 @@ def main():
 
 # Parse the command line options
 
-  usage = "Usage: vcfTools.py merge [options]"
+  usage = "Usage: vcfPytools.py merge [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",

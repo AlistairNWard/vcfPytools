@@ -284,7 +284,7 @@ class statistics:
         pdfRoot = pdfFile.split(".",2)
         pdfFile = pdfRoot[0] + ".pdf"
         RScript = createRHistScript(pdfFile)
-        success = subprocess.call("R CMD BATCH vcfToolsRScript.R", shell=True)
+        success = subprocess.call("R CMD BATCH vcfPytoolsRScript.R", shell=True)
         os.remove("Rdata")
         os.remove(RScript)
         RScript = RScript + "out"
@@ -297,7 +297,7 @@ def main():
 
 # Parse the command line options
 
-  usage = "Usage: vcfTools.py stats [options]"
+  usage = "Usage: vcfPytools.py stats [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="store", type="string",

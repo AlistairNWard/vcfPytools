@@ -4,7 +4,7 @@ import os.path
 import sys
 
 def createRHistScript(output):
-  file = "vcfToolsRScript.R"
+  file = "vcfPytoolsRScript.R"
   R = open(file, 'w')
   text = "pdf(\"" + output + "\")\n"
   R.write( text )
