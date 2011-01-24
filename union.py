@@ -213,7 +213,7 @@ def main():
     print >> sys.stderr, "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    writeHeader(outputFile, v1) # tools.py
+    writeHeader(outputFile, v1, False) # tools.py
 
 # Get the first record from both vcf files.
 

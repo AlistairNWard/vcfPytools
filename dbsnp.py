@@ -36,6 +36,9 @@ def main():
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
+  parser.add_option("-r", "--remove-genotypes",
+                    action="store_true", default=False,
+                    dest="removeGeno", help="remove the genotype strings from the vcf file")
 
   (options, args) = parser.parse_args()
 
@@ -117,7 +120,7 @@ def main():
       if v.position == dbsnp.position:
         v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
         checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-        newRecord = v.buildRecord()
+        newRecord = v.buildRecord(options.removeGeno)
         outputFile.write( newRecord )
       elif v.position > dbsnp.position:
         for dbsnpLine in dbsnp.filehandle:
@@ -131,7 +134,7 @@ def main():
           elif v.position == dbsnp.position:
             v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
             checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-            newRecord = v.buildRecord()
+            newRecord = v.buildRecord(options.removeGeno)
             outputFile.write( newRecord )
             break
       else:
@@ -154,7 +157,7 @@ def main():
             if v.position == dbsnp.position:
               v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
               checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-              newRecord = v.buildRecord()
+              newRecord = v.buildRecord(options.removeGeno)
               outputFile.write( newRecord )
               break
             elif v.position < dbsnp.position:
@@ -178,7 +181,7 @@ def main():
             if v.position == dbsnp.position:
               v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
               checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-              newRecord = v.buildRecord()
+              newRecord = v.buildRecord(options.removeGeno)
               outputFile.write( newRecord )
               break
             elif v.position < dbsnp.position:

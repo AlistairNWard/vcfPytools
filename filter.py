@@ -35,8 +35,11 @@ def main():
                     action="store", type="int",
                     dest="quality", help="filter out SNPs with qualities lower than selected value")
   parser.add_option("-n", "--info",
-                   action="append", type="string", nargs=2,
-                   dest="infoFilters", help="filter based on entries in the info string")
+                    action="append", type="string", nargs=2,
+                    dest="infoFilters", help="filter based on entries in the info string")
+  parser.add_option("-r", "--remove-genotypes",
+                    action="store_true", default=False,
+                    dest="removeGeno", help="remove the genotype strings from the vcf file")
 
   (options, args) = parser.parse_args()
 
@@ -94,7 +97,7 @@ def main():
 # Parse the vcf file and check if any of the filters are failed.  If
 # so, build up a string of failed filters.
 
-  writeHeader(outputFile, v)
+  writeHeader(outputFile, v, options.removeGeno)
   for line in v.filehandle:
     filterString = ""
     v.getRecord(line)
@@ -119,7 +122,7 @@ def main():
 
     filterString = "PASS" if filterString == "" else filterString
     v.filters = filterString
-    newRecord = v.buildRecord()
+    newRecord = v.buildRecord(options.removeGeno)
     outputFile.write( newRecord )
 
 # Close the vcf files.

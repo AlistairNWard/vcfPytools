@@ -7,6 +7,9 @@ import optparse
 import vcfClass
 from vcfClass import *
 
+import bedClass
+from bedClass import *
+
 import tools
 from tools import *
 
@@ -131,6 +134,9 @@ def main():
   parser.add_option("-i", "--in",
                     action="append", type="string",
                     dest="vcfFiles", help="input vcf files")
+  parser.add_option("-b", "--bed",
+                    action="append", type="string",
+                    dest="bedFiles", help="input bed files")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
@@ -144,10 +150,14 @@ def main():
 
   if options.vcfFiles == None:
     parser.print_help()
-    print >> sys.stderr, "\nTwo input vcf files (-i) are required for performing intersection."
+    print >> sys.stderr, "\nTwo input vcf files are required for performing intersection."
     exit(1)
-  elif len(options.vcfFiles) != 2:
-    print >> sys.stderr, "Two input vcf files are required for performing intersection."
+  elif len(options.bedFiles) > 1:
+    parser.print_help()
+    print >> sys.stderr, "\nInput files can only include zero of one bed files."
+    exit(1)
+  elif len(options.vcfFiles) + len(options.bedFiles) != 2:
+    print >> sys.stderr, "Two input files are required for performing intersection."
 
 # Set the output file to stdout if no output file was specified.
 
@@ -166,6 +176,8 @@ def main():
 
   if options.priorityFile == None:
     priority = 0
+  elif len(options.bedFiles) == 1:
+    priority = 1;
   else:
     if options.priorityFile != options.vcfFiles[0] and options.priorityFile != options.vcfFiles[1]:
       print >> sys.stderr, "The file defined as having priority for writing out records must"
@@ -180,6 +192,31 @@ def main():
 
   v1 = vcf() # Define vcf object.
   v2 = vcf() # Define vcf object.
+
+# If the second file was a bed file, create a vcf file that includes only
+# the positions included in the bed file.
+
+  if len(options.bedFiles) == 1:
+    tempFile = options.bedFiles[0] + ".temp.vcf"
+    tempFilehandle = open(tempFile, 'w')
+    tempFilehandle.write( "#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO\n" )
+    b = bed() # Define bed object.
+    b.openBed(options.bedFiles[0])
+    for line in b.filehandle:
+      b.getRecord(line)
+      for position in range(b.start, b.end + 1):
+        record = b.ref + "\t" + \
+                 str(position) + "\t" + \
+                 "." + "\t" + \
+                 "." + "\t" + \
+                 "." + "\t" + \
+                 "." + "\t" + \
+                 "." + "\t" + \
+                 "." + "\n"
+        tempFilehandle.write( record )
+    b.closeBed(options.bedFiles[0])
+    tempFilehandle.close()
+    options.vcfFiles.append( tempFile )
 
 # Read in the reference sequences present in the second vcf file.
 
@@ -207,7 +244,7 @@ def main():
     print >> sys.stderr, "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    writeHeader(outputFile, v1) # tools.py
+    writeHeader(outputFile, v1, False) # tools.py
 
 # Get the first record from both vcf files.
 
@@ -251,4 +288,10 @@ def main():
 
   v1.closeVcf(options.vcfFiles[0])
   v2.closeVcf(options.vcfFiles[1])
+
+# Delete the temp vcf file if one was created from a bed file.
+
+  if len(options.bedFiles) == 1:
+    os.remove(tempFile)
+
   exit(0)

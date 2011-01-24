@@ -100,6 +100,10 @@ class vcf:
             self.formatHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
           else:
             self.headerText = self.headerText + line + "\n"
+
+# The final line in the header should be the line defining the
+# contents of the columns in the vcf file.
+
       elif line.startswith("#"):
         self.headerTitles = line + "\n"
 
@@ -346,7 +350,7 @@ class vcf:
 
 # Build a new vcf record.
 
-  def buildRecord(self):
+  def buildRecord(self, removeGenotypes):
     newRecord = self.referenceSequence + "\t" + \
                 str(self.position) + "\t" + \
                 self.rsid + "\t" + \
@@ -356,7 +360,7 @@ class vcf:
                 self.filters + "\t" + \
                 self.info
 
-    if self.hasGenotypes == True:
+    if self.hasGenotypes == True and not removeGenotypes:
       newRecord = newRecord + "\t" + self.genotypeFormatString
       for genotype in self.genotypes:
         newRecord = newRecord + "\t" + genotype

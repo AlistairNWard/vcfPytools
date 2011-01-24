@@ -53,7 +53,7 @@ def main():
 # Read in the header information.
 
   v.parseHeader(options.vcfFile, writeOut, True)
-  writeHeader(outputFile, v)
+  writeHeader(outputFile, v, False)
 
 # Parse the vcf file and for each reference sequence, output
 # the position to a temp file.  These files will allow each
