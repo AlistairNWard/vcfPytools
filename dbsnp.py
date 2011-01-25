@@ -30,7 +30,7 @@ def calculateIntersection(v, dbsnp, line, dbsnpLine, vcfReferenceSequences, outp
   if dbsnp.referenceSequence != v.referenceSequence:
     if vcfReferenceSequences[dbsnp.referenceSequence] == "unparsed": vcfReferenceSequences[dbsnp.referenceSequence] = "skipped"
     while dbsnp.referenceSequence != v.referenceSequence:
-      dbsnpLline = dbsnp.filehandle.readline()
+      dbsnpLine = dbsnp.filehandle.readline()
       if not dbsnpLine:
         print >> sys.stderr, "Error occurred in intersection calculation."
         print >> sys.stderr, "Couldn't locate reference sequence:", dbsnp.referenceSequence
@@ -223,7 +223,7 @@ def main():
     if vcfReferenceSequences.has_key(v.referenceSequence) and vcfReferenceSequences[v.referenceSequence] == "skipped":
       dbsnp.closeVcf(options.dbsnpFile)
       dbsnp.openVcf(options.dbsnpFile)
-      dbsnp.parseHeader(options.vcfFiles[1], False, False)
+      dbsnp.parseHeader(options.dbsnpFile, False, False)
       dbsnpLine = dbsnp.filehandle.readline()
       dbsnp.getRecord(dbsnpLine)
       for key, value in vcfReferenceSequences.iteritems():
@@ -236,6 +236,7 @@ def main():
     elif not v.referenceSequence in vcfReferenceSequences:
       currentReferenceSequence = v.referenceSequence
       while v.referenceSequence == currentReferenceSequence:
+        outputFile.write( line )
         line = v.filehandle.readline()
         if not line: break
         v.getRecord(line)

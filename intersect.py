@@ -135,8 +135,8 @@ def main():
                     action="append", type="string",
                     dest="vcfFiles", help="input vcf files")
   parser.add_option("-b", "--bed",
-                    action="append", type="string",
-                    dest="bedFiles", help="input bed files")
+                    action="store", type="string",
+                    dest="bedFile", help="input bed file")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
@@ -152,11 +152,7 @@ def main():
     parser.print_help()
     print >> sys.stderr, "\nTwo input vcf files are required for performing intersection."
     exit(1)
-  elif len(options.bedFiles) > 1:
-    parser.print_help()
-    print >> sys.stderr, "\nInput files can only include zero of one bed files."
-    exit(1)
-  elif len(options.vcfFiles) + len(options.bedFiles) != 2:
+  elif len(options.vcfFiles) > 1 and options.bedFile != None:
     print >> sys.stderr, "Two input files are required for performing intersection."
 
 # Set the output file to stdout if no output file was specified.
@@ -176,7 +172,7 @@ def main():
 
   if options.priorityFile == None:
     priority = 0
-  elif len(options.bedFiles) == 1:
+  elif options.bedFile != None:
     priority = 1;
   else:
     if options.priorityFile != options.vcfFiles[0] and options.priorityFile != options.vcfFiles[1]:
@@ -196,12 +192,12 @@ def main():
 # If the second file was a bed file, create a vcf file that includes only
 # the positions included in the bed file.
 
-  if len(options.bedFiles) == 1:
-    tempFile = options.bedFiles[0] + ".temp.vcf"
+  if options.bedFile != None:
+    tempFile = options.bedFile + ".temp.vcf"
     tempFilehandle = open(tempFile, 'w')
     tempFilehandle.write( "#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO\n" )
     b = bed() # Define bed object.
-    b.openBed(options.bedFiles[0])
+    b.openBed(options.bedFile)
     for line in b.filehandle:
       b.getRecord(line)
       for position in range(b.start, b.end + 1):
@@ -214,7 +210,7 @@ def main():
                  "." + "\t" + \
                  "." + "\n"
         tempFilehandle.write( record )
-    b.closeBed(options.bedFiles[0])
+    b.closeBed(options.bedFile)
     tempFilehandle.close()
     options.vcfFiles.append( tempFile )
 
@@ -291,7 +287,7 @@ def main():
 
 # Delete the temp vcf file if one was created from a bed file.
 
-  if len(options.bedFiles) == 1:
+  if options.bedFile != None:
     os.remove(tempFile)
 
   exit(0)
