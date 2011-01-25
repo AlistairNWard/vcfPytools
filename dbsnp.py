@@ -7,8 +7,8 @@ import optparse
 import vcfClass
 from vcfClass import *
 
-if __name__ == "__main__":
-  main()
+import tools
+from tools import *
 
 # Check that the reference and alternate in the dbsnp vcf file match those
 # from the input vcf file.
@@ -21,11 +21,126 @@ def checkRefAlt(vcfRef, vcfAlt, dbsnpRef, dbsnpAlt, ref, position):
 
     print >> sys.stderr, text
 
+def calculateIntersection(v, dbsnp, line, dbsnpLine, vcfReferenceSequences, outputFile):
+
+# If the second vcf file is at a different reference sequence, parse
+# through the file until records for this reference are found.
+
+  currentReferenceSequence = v.referenceSequence
+  if dbsnp.referenceSequence != v.referenceSequence:
+    if vcfReferenceSequences[dbsnp.referenceSequence] == "unparsed": vcfReferenceSequences[dbsnp.referenceSequence] = "skipped"
+    while dbsnp.referenceSequence != v.referenceSequence:
+      dbsnpLline = dbsnp.filehandle.readline()
+      if not dbsnpLine:
+        print >> sys.stderr, "Error occurred in intersection calculation."
+        print >> sys.stderr, "Couldn't locate reference sequence:", dbsnp.referenceSequence
+        exit(1)
+      dbsnp.getRecord(dbsnpLine)
+
+  while v.referenceSequence == currentReferenceSequence:
+
+# If all of the entries in the second vcf file have been processed,
+# parse through the remaining records in v as no more intersections
+# can be found for this reference sequence.
+
+    if dbsnp.referenceSequence != currentReferenceSequence:
+      while v.referenceSequence == currentReferenceSequence:
+        outputFile.write(line)
+        line = v.filehandle.readline()
+        if not line: break
+        v.getRecord(line)
+      break
+
+# If the position in the first vcf file is smaller than that in the
+# second vcf file, move to the next record in the first vcf file as
+# this is not a shared record.
+
+    if v.position < dbsnp.position:
+      outputFile.write(line)
+      line = v.filehandle.readline()
+      if not line: break
+      v.getRecord(line)
+
+# If the positions are equal, thie record is present in both vcf files
+# and so is written to the output.
+
+    elif v.position == dbsnp.position:
+      v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
+      checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
+      newRecord = v.buildRecord(False)
+      outputFile.write( newRecord )
+
+      line = v.filehandle.readline()
+      if not line: break
+      v.getRecord(line)
+
+      dbsnpLine = dbsnp.filehandle.readline()
+      if not dbsnpLine: break
+      dbsnp.getRecord(dbsnpLine)
+
+    else:
+      if dbsnp.referenceSequence == currentReferenceSequence:
+        dbsnpLine = dbsnp.filehandle.readline()
+
+# If the second vcf file is exhausted, parse through the remaining
+# records for this reference sequence in v as no more intersections
+# can be found for it.
+
+        if not dbsnpLine: 
+          while v.referenceSequence == currentReferenceSequence:
+            outputFile.write(line)
+            line = v.filehandle.readline()
+            if not line: break
+            v.getRecord(line)
+          break
+        dbsnp.getRecord(dbsnpLine)
+
+        while dbsnp.referenceSequence == currentReferenceSequence and dbsnp.position <= v.position:
+
+# If dbsnp.position = v.position, also iterate the record in v.
+
+          if v.position == dbsnp.position:
+            v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
+            checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
+            newRecord = v.buildRecord(False)
+            outputFile.write( newRecord )
+
+            line = v.filehandle.readline()
+            if not line: break
+            v.getRecord(line)
+
+          dbsnpLine = dbsnp.filehandle.readline()
+          if not dbsnpLine: 
+            while v.referenceSequence == currentReferenceSequence:
+              outputFile.write( line )
+              line = v.filehandle.readline()
+              if not line: break
+              v.getRecord(line)
+            break
+          dbsnp.getRecord(dbsnpLine)
+
+# If dbsnp has moved on to the next reference sequence, parse through
+# the rest of the records in v until the end of this reference
+# sequence as no more intersections can be found for this
+# reference sequence.
+
+      else:
+        while v.referenceSequence == currentReferenceSequence:
+          outputFile.write( line )
+          line = v.filehandle.readline()
+          if not line: break
+          v.getRecord(line)
+
+  return v, dbsnp, line, dbsnpLine, vcfReferenceSequences
+
+if __name__ == "__main__":
+  main()
+
 def main():
 
 # Parse the command line options
 
-  usage = "Usage: vcfPytools.py intersect [options]"
+  usage = "Usage: vcfPytools.py dbsnp [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="store", type="string",
@@ -36,17 +151,14 @@ def main():
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
-  parser.add_option("-r", "--remove-genotypes",
-                    action="store_true", default=False,
-                    dest="removeGeno", help="remove the genotype strings from the vcf file")
 
   (options, args) = parser.parse_args()
 
-# Check that a single vcf file is given.
+# Check that multiple vcf files are given.
 
   if options.vcfFile == None:
     parser.print_help()
-    print >> sys.stderr, "\nInput vcf file (-i, --input) is required for dbsnp annotation."
+    print >> sys.stderr, "\nInput vcf file (--in, -i) is required for dbsnp calculation."
     exit(1)
 
 # Check that a dbsnp vcf file is included.
@@ -66,18 +178,18 @@ def main():
     writeOut = True
 
   v = vcf() # Define vcf object.
-  dbsnp = vcf() # Define dbsnp vcf object.
+  dbsnp = vcf() # Define vcf object.
   dbsnp.processInfo = True
   dbsnp.dbsnpVcf = True
 
-# Read in the reference sequences present in the dbsnp vcf file.
+# Read in the reference sequences present in the second vcf file.
 
   dbsnp.openVcf(options.dbsnpFile)
   dbsnp.parseHeader(options.dbsnpFile, False, False)
   for dbsnpLine in dbsnp.filehandle:
     dbsnp.getRecord(dbsnpLine)
-    dbsnp.referenceSequences[ dbsnp.referenceSequence ] = False
-  vcfReferenceSequences = dbsnp.referenceSequences
+    dbsnp.referenceSequences[ dbsnp.referenceSequence ] = "unparsed"
+  vcfReferenceSequences = dbsnp.referenceSequences.copy()
   dbsnp.closeVcf(options.dbsnpFile)
 
 # Open the vcf files.
@@ -90,109 +202,52 @@ def main():
   v.parseHeader(options.vcfFile, writeOut, True)
   dbsnp.parseHeader(options.dbsnpFile, writeOut, True)
 
-# Write out the header information to the new output file.  Include an extra
-# header line indicating the dbSNP file used for the annotation.
+# Check that the header for the two files contain the same samples.
 
-  dbsnpText = "##dbsnp=" + options.dbsnpFile + "\n"
-  outputFile.write( v.headerText ) if v.headerText != "" else None
-  outputFile.write( dbsnpText )
-  outputFile.write( v.headerInfoText ) if v.headerInfoText != "" else None
-  outputFile.write( v.headerFormatText ) if v.headerFormatText != "" else None
-  outputFile.write( v.headerTitles)
+  dbsnp.headerText = dbsnp.headerText + "##dbsnp=" + options.dbsnpFile + "\n"
+  writeHeader(outputFile, dbsnp, False) # tools.py
 
-# Get the first line of the second vcf file.
+# Get the first record from both vcf files.
 
-  for dbsnpLine in dbsnp.filehandle:
-    dbsnp.getRecord(dbsnpLine)
-    break
+  line = v.filehandle.readline()
+  dbsnpLine = dbsnp.filehandle.readline()
+  v.getRecord(line)
+  dbsnp.getRecord(dbsnpLine)
 
-# Determine the intersection of the vcf and dbSNP vcf files.
+# Calculate the intersection. Check if the records from the two vcf files 
+# correspond to the same reference sequence.  If so, search up to 
+# the same position and write out the record if it exists in the 
+# second vcf file.
 
-  for vcfLine in v.filehandle:
-    v.getRecord(vcfLine)
+  while True:
+    if vcfReferenceSequences.has_key(v.referenceSequence) and vcfReferenceSequences[v.referenceSequence] == "skipped":
+      dbsnp.closeVcf(options.dbsnpFile)
+      dbsnp.openVcf(options.dbsnpFile)
+      dbsnp.parseHeader(options.vcfFiles[1], False, False)
+      dbsnpLine = dbsnp.filehandle.readline()
+      dbsnp.getRecord(dbsnpLine)
+      for key, value in vcfReferenceSequences.iteritems():
+        if vcfReferenceSequences[key] == "skipped":
+          vcfReferenceSequences[key] = "unparsed"
 
-# Check if the records from the two vcf files correspond to the same
-# reference sequence.  If so, search up to the same position and
-# write out the record if it exists in the second vcf file.
+    if vcfReferenceSequences.has_key(v.referenceSequence) and vcfReferenceSequences[v.referenceSequence] != "completed":
+      vcfReferenceSequences[v.referenceSequence] = "completed"
+      v, dbsnp, line, dbsnpLine, vcfReferenceSequences = calculateIntersection(v, dbsnp, line, dbsnpLine, vcfReferenceSequences, outputFile)
+    elif not v.referenceSequence in vcfReferenceSequences:
+      currentReferenceSequence = v.referenceSequence
+      while v.referenceSequence == currentReferenceSequence:
+        line = v.filehandle.readline()
+        if not line: break
+        v.getRecord(line)
 
-    if v.referenceSequence == dbsnp.referenceSequence:
-      vcfReferenceSequences[v.referenceSequence] = True
-      if v.position == dbsnp.position:
-        v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-        checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-        newRecord = v.buildRecord(options.removeGeno)
-        outputFile.write( newRecord )
-      elif v.position > dbsnp.position:
-        for dbsnpLine in dbsnp.filehandle:
-          dbsnp.getRecord(dbsnpLine)
-          if v.referenceSequence != dbsnp.referenceSequence:
-            outputFile.write( vcfLine )
-            break
-          if dbsnp.position > v.position:
-            outputFile.write( vcfLine )
-            break
-          elif v.position == dbsnp.position:
-            v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-            checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-            newRecord = v.buildRecord(options.removeGeno)
-            outputFile.write( newRecord )
-            break
-      else:
-        outputFile.write( vcfLine )
+# If the end of the first vcf file has been reached, there can be no
+# more intersections, so the calculation is complete.
 
-# Check if the dbsnp file includes the reference sequence.
-
-    elif vcfReferenceSequences.has_key(v.referenceSequence):
-
-# If the reference sequence in the record from the first vcf file exists
-# in the second, but has not been read yet, parse through the second
-# vcf file until this reference sequence is reached, then search for the
-# same position.
-
-      if vcfReferenceSequences[v.referenceSequence] == False:
-        for dbsnpLine in dbsnp.filehandle:
-          rsid = dbsnp.getRecord(dbsnpLine)
-          vcfReferenceSequences[dbsnp.referenceSequence] = True
-          if v.referenceSequence == dbsnp.referenceSequence:
-            if v.position == dbsnp.position:
-              v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-              checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-              newRecord = v.buildRecord(options.removeGeno)
-              outputFile.write( newRecord )
-              break
-            elif v.position < dbsnp.position:
-              outputFile.write( vcfLine )
-              break
-
-# If the reference sequence in the record from the first vcf file exists
-# in the second and has already been parsed, close and reopen the second
-# vcf file, then allow the search to begin again from the beginning of the
-# file.
-
-      elif vcfReferenceSequences[v.referenceSequence] == True:
-        dbsnp.closeVcf(options.dbsnpFile)
-        dbsnp.openVcf(options.dbsnpFile)
-        dbsnp.parseHeader(options.dbsnpFile, False, False)
-        for ref in vcfReferenceSequences:
-          vcfReferenceSequences[ref] = False
-        for dbsnpLine in dbsnp.filehandle:
-          dbsnp.getRecord(dbsnpLine)
-          if v.referenceSequence == dbsnp.referenceSequence:
-            if v.position == dbsnp.position:
-              v.rsid = dbsnp.getDbsnpInfo(dbsnpLine)
-              checkRefAlt(v.ref, v.alt, dbsnp.ref, dbsnp.alt, v.referenceSequence, v.position)
-              newRecord = v.buildRecord(options.removeGeno)
-              outputFile.write( newRecord )
-              break
-            elif v.position < dbsnp.position:
-              outputFile.write( vcfLine )
-              break
-
-    else:
-      outputFile.write( vcfLine )
+    if not line: break
 
 # Close the vcf files.
 
   v.closeVcf(options.vcfFile)
   dbsnp.closeVcf(options.dbsnpFile)
+
   exit(0)

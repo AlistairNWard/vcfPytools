@@ -253,7 +253,7 @@ def main():
   v1.getRecord(line1)
   v2.getRecord(line2)
 
-# Calculate the union. Check if the records from the two vcf files 
+# Calculate the intersection. Check if the records from the two vcf files 
 # correspond to the same reference sequence.  If so, search up to 
 # the same position and write out the record if it exists in the 
 # second vcf file.
