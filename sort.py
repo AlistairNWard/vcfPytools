@@ -16,7 +16,6 @@ if __name__ == "__main__":
 def main():
 
 # Parse the command line options
-
   usage = "Usage: vcfPytools.py sort [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
@@ -29,29 +28,20 @@ def main():
   (options, args) = parser.parse_args()
 
 # Check that a single vcf file is given.
-
   if options.vcfFile == None:
     parser.print_help()
     print >> sys.stderr, "\nInput vcf file (-i, --input) is required for vcf sorting."
     exit(1)
 
 # Set the output file to stdout if no output file was specified.
-
-  if options.output == None:
-    outputFile = sys.stdout
-    writeOut = False
-  else:
-    outputFile = open(options.output, 'w')
-    writeOut = True
+  outputFile, writeOut = setOutput(options.output)
 
   v = vcf() # Define vcf object.
 
 # Open the vcf file.
-
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-
   v.parseHeader(options.vcfFile, writeOut, True)
   writeHeader(outputFile, v, False)
 
@@ -59,11 +49,11 @@ def main():
 # the position to a temp file.  These files will allow each
 # reference sequence to be dealt with individually, reducing
 # the amount of information requiring storage in memory.
-
   tempFiles = {}
   tempPositionsFiles = {}
-  for line in v.filehandle:
-    v.getRecord(line)
+  success = 0
+  while success == 0:
+    success = v.getRecord()
     tempPositionsFile = "positions." + v.referenceSequence + ".vcfPytools.tmp"
     tempFile = "records." + v.referenceSequence + ".vcfPytools.tmp"
     if tempFile not in tempFiles:
@@ -73,10 +63,9 @@ def main():
       tempFiles[tempFile] = tempFilehandle
 
     tempPositionsFiles[tempPositionsFile].write( str(v.position) + "\n" )
-    tempFiles[tempFile].write(line)
+    tempFiles[tempFile].write(v.record)
 
 # Close the temp files.
-
   for tempFile in tempFiles:
     tempFiles[tempFile].close()
   for tempPositionsFile in tempPositionsFiles:
@@ -84,7 +73,6 @@ def main():
 
 # Read in the positions, sort them and replace the temp positions
 # file with a sorted file.
-
   for tempPositionsFile in tempPositionsFiles:
     positionsList = []
     tempPositionsFilehandle = open(tempPositionsFile, 'r')
@@ -95,7 +83,6 @@ def main():
     os.remove(tempPositionsFile)
 
 # Sort the list.
-
     sortedPositionsList = sorted(positionsList)
     tempPositionsFilehandle = open(tempPositionsFile, 'w')
     for line in sortedPositionsList:
@@ -105,7 +92,6 @@ def main():
 # Read through the sorted positions file and the file containing
 # only the records for that reference sequence and write the
 # records to the output file in order.
-
   for referenceSequence in v.referenceSequencesList:
     v1 = vcf()
     positionsFile = "positions." + referenceSequence + ".vcfPytools.tmp"
@@ -115,24 +101,19 @@ def main():
 
 # Get the first position from the positions file and the first
 # record from the records file.
-
-    line = v1.filehandle.readline()
-    v1.getRecord(line)
+    success = v1.getRecord()
     position = int( positionsFilehandle.readline() )
 
 # Create a dictionary containing the positions of records that
 # have been written to their own temp file.
-
     storedRecords = {}
 
 # Sort and output.
-
     while True:
 
 # If this position has already been seen in the vcf file, then
 # it was written to a temp file and a dictionary key set.  Now
 # write this record to file and delete the dictionay key.
-
       if position in storedRecords:
         storedTemp = "stored." + str(position) + ".vcfPytools.tmp"
         storedTempFilehandle = open(storedTemp,'r')
@@ -149,27 +130,23 @@ def main():
 # record from the vcf file, this record needs to be saved until
 # the correct time.  Create a temp file to hold it and add the
 # position to a dictionary.
-
       elif position < v1.position:
         storedTemp = "stored." + str(v1.position) + ".vcfPytools.tmp"
         storedTempFilehandle = open(storedTemp,'w')
-        storedTempFilehandle.write( line )
+        storedTempFilehandle.write(v1.record)
         storedTempFilehandle.close()
         storedRecords[v1.position] = True
 
-        line = v1.filehandle.readline()
-        if not line: break
-        v1.getRecord(line)
+        success = v1.getRecord()
+        if success == 1: break
 
 # If the position in the vcf file agrees with that in the positions
 # file, then the record can be written to file.
-
       elif position == v1.position:
-        outputFile.write(line)
+        outputFile.write(v1.record)
 
-        line = v1.filehandle.readline()
-        if not line: break
-        v1.getRecord(line)
+        success = v1.getRecord()
+        if success == 1: break
 
         position = int( positionsFilehandle.readline() )
         if not position: break
@@ -179,7 +156,6 @@ def main():
 
 # Check if any records remain in stored files.  If so, write them out
 # to the output file in order.
-
     if len( storedRecords ) > 0:
       for position in sorted(storedRecords):
         storedTemp = "stored." + str(position) + ".vcfPytools.tmp"
@@ -191,13 +167,13 @@ def main():
         del storedRecords[position]
 
 # Close and delete the temp files for this reference sequence.
-
     positionsFilehandle.close()
     v1.closeVcf(recordsFile)
     os.remove(positionsFile)
     os.remove(recordsFile)
 
-# Close the vcf file and terminate the program.
-
+# Close the vcf file.
   v.closeVcf(options.vcfFile)
-  exit(0)
+
+# Terminate the program cleanly.
+  return 0

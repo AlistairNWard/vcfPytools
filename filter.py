@@ -22,7 +22,6 @@ def filterFail(text, file):
 def main():
 
 # Parse the command line options
-
   usage = "Usage: vcfPytools.py filter [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
@@ -35,7 +34,7 @@ def main():
                     action="store", type="int",
                     dest="quality", help="filter out SNPs with qualities lower than selected value")
   parser.add_option("-n", "--info",
-                    action="append", type="string", nargs=2,
+                    action="append", type="string", nargs=3,
                     dest="infoFilters", help="filter based on entries in the info string")
   parser.add_option("-r", "--remove-genotypes",
                     action="store_true", default=False,
@@ -44,48 +43,59 @@ def main():
   (options, args) = parser.parse_args()
 
 # Check that a single vcf file is given.
-
   if options.vcfFile == None:
     parser.print_help()
     print >> sys.stderr, "\nInput vcf file (-i, --input) is required for vcf filtering."
     exit(1)
 
 # Set the output file to stdout if no output file was specified.
-
-  if options.output == None:
-    outputFile = sys.stdout
-    writeOut = False
-  else:
-    outputFile = open(options.output, 'w')
-    writeOut = True
+  outputFile, writeOut = setOutput(options.output) # tools.py
 
   v = vcf() # Define vcf object.
 
 # Open the vcf file.
-
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-
   v.parseHeader(options.vcfFile, writeOut, True)
 
 # Check that specified filters from the info field are either integers or floats.
-
   if options.infoFilters:
     v.processInfo = True # Process the info string
     filters = {}
-    for filter, value in options.infoFilters:
+    filterValues = {}
+    filterLogic = {}
+    for filter, value, logic in options.infoFilters:
+      filterName = str(filter) + str(value)
+      if "-" in filter or "-" in value or "-" in logic:
+        print >> sys.stderr, "\n--info (-n) requires three arguments, for example:"
+        print >> sys.stderr, "\t--info DP 5 lt: filter records with DP less than (lt) 5.\n"
+        print >> sys.stderr, "allowed logic arguments:\n\tgt: greater than\n\tlt: less than."
+        print >> sys.stderr, "\nError in:", filter
+        exit(1)
+      if logic != "gt" and logic != "lt":
+        print >> sys.stderr, "\nfilter logic not recognised."
+        print >> sys.stderr, "allowed logic arguments:\n\tgt: greater than\n\tlt: less than."
+        print >> sys.stderr, "\nError in:", filter
+        exit(1)
       if v.infoHeaderTags.has_key(filter):
         if v.infoHeaderTags[filter][1].lower() == "integer":
           try:
-            filters[filter] = int(value)
+            filters[filterName] = filter
+            filterValues[filterName] = int(value)
+            filterLogic[filterName] = logic
+            #filterLogic[filterName] = logic
           except ValueError:
             text = "Filter " + filter + " requires an integer entry, not " + str(type(value))
             filterFail(text, options.output)
 
         if v.infoHeaderTags[filter][1].lower() == "float":
           try:
-            filters[filter] = float(value)
+            filters[filterName] = filter
+            filterValues[filterName] = float(value)
+            filterLogic[filterName] = logic
+            #filters[filterName] = float(value)
+            #filterLogic[filterName] = logic
           except ValueError:
             text = "Filter " + filter + " requires an float entry, not " + str(type(value))
             filterFail(text, options.output)
@@ -96,36 +106,41 @@ def main():
 
 # Parse the vcf file and check if any of the filters are failed.  If
 # so, build up a string of failed filters.
-
   writeHeader(outputFile, v, options.removeGeno)
-  for line in v.filehandle:
+  success = 0
+  while success == 0:
     filterString = ""
-    v.getRecord(line)
+    success = v.getRecord()
 
 # Check for quality filtering.
-
     if options.quality != None:
       if int(v.quality) < options.quality:
         filterString = filterString + ";" + "Q" + str(options.quality) if filterString != "" else "Q" + str(options.quality)
 
 # Check for filtering on info string filters.
-
     if options.infoFilters:
-      for filter, value in filters.iteritems():
+      for filterName, filter in filters.iteritems():
+        value = filterValues[filterName]
+        logic = filterLogic[filterName]
         if v.infoTags.has_key(filter):
           if type(value) == int:
-            if int(v.infoTags[filter]) < value:
+            if logic == "lt" and int(v.infoTags[filter]) < value:
+              filterString = filterString + ";" + filter + str(value) if filterString != "" else filter + str(value)
+            if logic == "gt" and int(v.infoTags[filter]) > value:
               filterString = filterString + ";" + filter + str(value) if filterString != "" else filter + str(value)
           elif type(value) == float:
-            if float(v.infoTags[filter]) < value:
+            if logic == "lt" and float(v.infoTags[filter]) < value:
+              filterString = filterString + ";" + filter + str(value) if filterString != "" else filter + str(value)
+            if logic == "gt" and float(v.infoTags[filter]) > value:
               filterString = filterString + ";" + filter + str(value) if filterString != "" else filter + str(value)
 
     filterString = "PASS" if filterString == "" else filterString
     v.filters = filterString
-    newRecord = v.buildRecord(options.removeGeno)
-    outputFile.write( newRecord )
+    record = v.buildRecord(options.removeGeno)
+    outputFile.write(record)
 
 # Close the vcf files.
-
   v.closeVcf(options.vcfFile)
-  exit(0)
+
+# Terminate the program.
+  return 0

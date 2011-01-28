@@ -4,7 +4,7 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.12"
+__version__ = "version 0.13"
 __date__ = "january 2011"
 
 def main():
@@ -32,37 +32,44 @@ def main():
 
   if tool == "dbsnp":
     import dbsnp
-    dbsnp.main()
+    success = dbsnp.main()
   if tool == "filter":
     import filter
-    filter.main()
+    success = filter.main()
   if tool == "intersect":
     import intersect
-    intersect.main()
+    success = intersect.main()
   elif tool == "merge":
     import merge
-    merge.main()
+    success = merge.main()
   elif tool == "sort":
     import sort
-    sort.main()
+    success = sort.main()
   elif tool == "stats":
     import stats
-    stats.main()
+    success = stats.main()
   elif tool == "union":
     import union
-    union.main()
+    success = union.main()
   elif tool == "unique":
     import unique
-    unique.main()
+    success = unique.main()
+  elif tool == "test":
+    import test
+    success = test.main()
   elif tool == "validate":
     import validate
-    validate.main()
+    success = validate.main()
   elif tool == "--help" or tool == "-h" or tool == "?":
     print >> sys.stderr, usage
   else:
     print >> sys.stderr, "Unknown tool: ",tool
     print >> sys.stderr, "\n", usage
     exit(1)
+
+# If program completed properly, terminate.
+
+  if success == 0: exit(0)
 
 if __name__ == "__main__":
   main()

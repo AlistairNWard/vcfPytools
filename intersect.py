@@ -4,290 +4,153 @@ import os.path
 import sys
 import optparse
 
-import vcfClass
-from vcfClass import *
-
 import bedClass
 from bedClass import *
+
+import vcfClass
+from vcfClass import *
 
 import tools
 from tools import *
 
-def calculateIntersection(v1, v2, line1, line2, vcfReferenceSequences, outputFile, priority):
-
-# If the second vcf file is at a different reference sequence, parse
-# through the file until records for this reference are found.
-
-  currentReferenceSequence = v1.referenceSequence
-  if v2.referenceSequence != v1.referenceSequence:
-    if vcfReferenceSequences[v2.referenceSequence] == "unparsed": vcfReferenceSequences[v2.referenceSequence] = "skipped"
-    while v2.referenceSequence != v1.referenceSequence:
-      line2 = v2.filehandle.readline()
-      if not line2:
-        print >> sys.stderr, "Error occurred in intersection calculation."
-        print >> sys.stderr, "Couldn't locate reference sequence:", v2.referenceSequence
-        exit(1)
-      v2.getRecord(line2)
-
-  while v1.referenceSequence == currentReferenceSequence:
-
-# If all of the entries in the second vcf file have been processed,
-# parse through the remaining records in v1 as no more intersections
-# can be found for this reference sequence.
-
-    if v2.referenceSequence != currentReferenceSequence:
-      while v1.referenceSequence == currentReferenceSequence:
-        line1 = v1.filehandle.readline()
-        if not line1: break
-        v1.getRecord(line1)
-      break
-
-# If the position in the first vcf file is smaller than that in the
-# second vcf file, move to the next record in the first vcf file as
-# this is not a shared record.
-
-    if v1.position < v2.position:
-      line1 = v1.filehandle.readline()
-      if not line1: break
-      v1.getRecord(line1)
-
-# If the positions are equal, thie record is present in both vcf files
-# and so is written to the output.
-
-    elif v1.position == v2.position:
-      if priority == 0:
-        if v1.quality >= v2.quality: outputFile.write(line1)
-        else: outputFile.write(line2)
-      elif priority == 1: outputFile.write(line1)
-      elif priority == 2: outputFile.write(line2)
-
-      line1 = v1.filehandle.readline()
-      if not line1: break
-      v1.getRecord(line1)
-
-      line2 = v2.filehandle.readline()
-      if not line2: break
-      v2.getRecord(line2)
-
-    else:
-      if v2.referenceSequence == currentReferenceSequence:
-        line2 = v2.filehandle.readline()
-
-# If the second vcf file is exhausted, parse through the remaining
-# records for this reference sequence in v1 as no more intersections
-# can be found for it.
-
-        if not line2: 
-          while v1.referenceSequence == currentReferenceSequence:
-            line1 = v1.filehandle.readline()
-            if not line1: break
-            v1.getRecord(line1)
-          break
-        v2.getRecord(line2)
-
-        while v2.referenceSequence == currentReferenceSequence and v2.position <= v1.position:
-
-# If v2.position = v1.position, also iterate the record in v1.
-
-          if v1.position == v2.position:
-            if priority == 0:
-              if v1.quality >= v2.quality: outputFile.write(line1)
-              else: outputFile.write(line2)
-            elif priority == 1: outputFile.write(line1)
-            elif priority == 2: outputFile.write(line2)
-
-            line1 = v1.filehandle.readline()
-            if not line1: break
-            v1.getRecord(line1)
-
-          line2 = v2.filehandle.readline()
-          if not line2: 
-            while v1.referenceSequence == currentReferenceSequence:
-              line1 = v1.filehandle.readline()
-              if not line1: break
-              v1.getRecord(line1)
-            break
-          v2.getRecord(line2)
-
-# If v2 has moved on to the next reference sequence, parse through
-# the rest of the records in v1 until the end of this reference
-# sequence as no more intersections can be found for this
-# reference sequence.
-
-      else:
-        while v1.referenceSequence == currentReferenceSequence:
-          line1 = v1.filehandle.readline()
-          if not line1: break
-          v1.getRecord(line1)
-
-  return v1, v2, line1, line2, vcfReferenceSequences
-
 if __name__ == "__main__":
   main()
+
+def setVcfPriority(priorityFile, vcfFiles):
+  if priorityFile == None: priority = 0
+  elif priorityFile == vcfFiles[0]: priority = 1
+  elif priorityFile == vcfFiles[1]: priority = 2
+  else:
+    print sys.stderr, "vcf file give priority must be one of the two input vcf files."
+    exit(1)
+
+  return priority
+
+# Intersect two vcf files.  It is assumed that the two files are
+# sorted by genomic coordinates and the reference sequences are
+# in the same order.
+def intersectVcf(v1, v2, priority, outputFile):
+  success1 = v1.getRecord()
+  success2 = v2.getRecord()
+  currentReferenceSequence = v1.referenceSequence
+
+# As soon as the end of either file is reached, there can be no
+# more intersecting SNPs, so terminate.
+  while success1 == 0 and success2 == 0:
+    if v1.referenceSequence == v2.referenceSequence:
+      if v1.position == v2.position:
+        writeVcfRecord(priority, v1, v2, outputFile)
+        success1 = v1.getRecord()
+        success2 = v2.getRecord()
+      elif v2.position > v1.position: success1 = v1.parseVcf(v2.referenceSequence, v2.position, False, None)
+      elif v1.position > v2.position: success2 = v2.parseVcf(v1.referenceSequence, v1.position, False, None)
+    else:
+      if v1.referenceSequence == currentReferenceSequence: success1 = v1.parseVcf(v2.referenceSequence, v2.position, False, None)
+      elif v2.referenceSequence == currentReferenceSequence: success2 = v2.parseVcf(v1.referenceSequence, v1.position, False, None)
+      currentReferenceSequence == v1.referenceSequence
+
+# Write out a vcf record.
+def writeVcfRecord(priority, v1, v2, outputFile):
+  if priority == 0:
+    if v1.quality >= v2.quality: outputFile.write(v1.record)
+    else: outputFile.write(v2.record)
+  elif priority == 1: outputFile.write(v1.record)
+  elif priority == 2: outputFile.write(v2.record)
+  else:
+    print >> sys.sterr, "Unknown file priority."
+    exit(1)
+
+# Intersect a vcf file and a bed file.  It is assumed that the 
+# two files are sorted by genomic coordinates and the reference
+# sequences are in the same order.
+def intersectVcfBed(v, b, outputFile):
+  print "Not yet implemented"
+  exit(0)
 
 def main():
 
 # Parse the command line options
-
-  usage = "Usage: vcfPytools.py intersection [options]"
+  usage = "Usage: vcfPytools.py intersect [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
                     action="append", type="string",
                     dest="vcfFiles", help="input vcf files")
   parser.add_option("-b", "--bed",
                     action="store", type="string",
-                    dest="bedFile", help="input bed file")
+                    dest="bedFile", help="input bed vcf file")
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
-  parser.add_option("-p", "--priority-file",
+  parser.add_option("-p", "--priority",
                     action="store", type="string",
-                    dest="priorityFile", help="output record from this file")
+                    dest="priorityFile", help="output records from this vcf file")
 
   (options, args) = parser.parse_args()
 
-# Check that multiple vcf files are given.
-
+# Check that a single  vcf file is given.
   if options.vcfFiles == None:
     parser.print_help()
-    print >> sys.stderr, "\nTwo input vcf files are required for performing intersection."
+    print >> sys.stderr, "\nAt least one vcf file (--in, -i) is required for performing intersection."
     exit(1)
-  elif len(options.vcfFiles) > 1 and options.bedFile != None:
-    print >> sys.stderr, "Two input files are required for performing intersection."
+  elif len(options.vcfFiles) > 2:
+    parser.print_help()
+    print >> sys.stderr, "\nAt most, two vcf files (--in, -i) can be submitted for performing intersection."
+    exit(1)
+  elif len(options.vcfFiles) == 1 and not options.bedFile:
+    parser.print_help()
+    print >> sys.stderr, "\nIf only one vcf file (--in, -i) is specified, a bed file is also required for performing intersection."
+    exit(1)
 
 # Set the output file to stdout if no output file was specified.
+  outputFile, writeOut = setOutput(options.output) # tools.py
 
-  if options.output == None:
-    outputFile = sys.stdout
-    writeOut = False
-  else:
-    outputFile = open(options.output, 'w')
-    writeOut = True
-
-# If no priority is given to either file (from the -p command line
-# option), set priorityQuality to True.  In this case, the record
-# written to the output file will be that with the higest quality.
-# If a priority is given, check that the file is one of the input
-# vcf files.
-
-  if options.priorityFile == None:
-    priority = 0
-  elif options.bedFile != None:
-    priority = 1;
-  else:
-    if options.priorityFile != options.vcfFiles[0] and options.priorityFile != options.vcfFiles[1]:
-      print >> sys.stderr, "The file defined as having priority for writing out records must"
-      print >> sys.stderr, "be one of the two input vcf files."
-      exit(1)
-
-    elif options.priorityFile == options.vcfFiles[0]:
-      priority = 1
-    
-    elif options.priorityFile == options.vcfFiles[1]:
-      priority = 2
-
-  v1 = vcf() # Define vcf object.
-  v2 = vcf() # Define vcf object.
-
-# If the second file was a bed file, create a vcf file that includes only
-# the positions included in the bed file.
-
-  if options.bedFile != None:
-    tempFile = options.bedFile + ".temp.vcf"
-    tempFilehandle = open(tempFile, 'w')
-    tempFilehandle.write( "#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO\n" )
+# If intersecting with a bed file, call the bed intersection routine.
+  if options.bedFile:
+    v = vcf() # Define vcf object.
     b = bed() # Define bed object.
+
+# Open the files.
+    v.openVcf(options.vcfFiles[0])
     b.openBed(options.bedFile)
-    for line in b.filehandle:
-      b.getRecord(line)
-      for position in range(b.start, b.end + 1):
-        record = b.ref + "\t" + \
-                 str(position) + "\t" + \
-                 "." + "\t" + \
-                 "." + "\t" + \
-                 "." + "\t" + \
-                 "." + "\t" + \
-                 "." + "\t" + \
-                 "." + "\n"
-        tempFilehandle.write( record )
-    b.closeBed(options.bedFile)
-    tempFilehandle.close()
-    options.vcfFiles.append( tempFile )
-
-# Read in the reference sequences present in the second vcf file.
-
-  v2.openVcf(options.vcfFiles[1])
-  v2.parseHeader(options.vcfFiles[1], False, False)
-  for line2 in v2.filehandle:
-    v2.getRecord(line2)
-    v2.referenceSequences[ v2.referenceSequence ] = "unparsed"
-  vcfReferenceSequences = v2.referenceSequences.copy()
-  v2.closeVcf(options.vcfFiles[1])
-
-# Open the vcf files.
-
-  v1.openVcf(options.vcfFiles[0])
-  v2.openVcf(options.vcfFiles[1])
 
 # Read in the header information.
-
-  v1.parseHeader(options.vcfFiles[0], writeOut, True)
-  v2.parseHeader(options.vcfFiles[1], writeOut, True)
-
-# Check that the header for the two files contain the same samples.
-
-  if v1.samplesList != v2.samplesList:
-    print >> sys.stderr, "vcf files contain different samples (or sample order)."
-    exit(1)
-  else:
+    v.parseHeader(options.vcfFiles[0], writeOut, True)
     writeHeader(outputFile, v1, False) # tools.py
 
-# Get the first record from both vcf files.
+# Intersect the vcf file with the bed file.
+    intersectVcfBed(v, b, outputFile)
 
-  line1 = v1.filehandle.readline()
-  line2 = v2.filehandle.readline()
-  v1.getRecord(line1)
-  v2.getRecord(line2)
+# Close the files.
+    v.closeVcf(options.vcfFiles[0])
+    b.closeBed(options.bedFile)
 
-# Calculate the intersection. Check if the records from the two vcf files 
-# correspond to the same reference sequence.  If so, search up to 
-# the same position and write out the record if it exists in the 
-# second vcf file.
+  else:
+    priority = setVcfPriority(options.priorityFile, options.vcfFiles)
+    v1 = vcf() # Define vcf object.
+    v2 = vcf() # Define vcf object.
 
-  while True:
-    if vcfReferenceSequences.has_key(v1.referenceSequence) and vcfReferenceSequences[v1.referenceSequence] == "skipped":
-      v2.closeVcf(options.vcfFiles[1])
-      v2.openVcf(options.vcfFiles[1])
-      v2.parseHeader(options.vcfFiles[1], False, False)
-      line2 = v2.filehandle.readline()
-      v2.getRecord(line2)
-      for key, value in vcfReferenceSequences.iteritems():
-        if vcfReferenceSequences[key] == "skipped":
-          vcfReferenceSequences[key] = "unparsed"
+# Open the vcf files.
+    v1.openVcf(options.vcfFiles[0])
+    v2.openVcf(options.vcfFiles[1])
 
-    if vcfReferenceSequences.has_key(v1.referenceSequence) and vcfReferenceSequences[v1.referenceSequence] != "completed":
-      vcfReferenceSequences[v1.referenceSequence] = "completed"
-      v1, v2, line1, line2, vcfReferenceSequences = calculateIntersection(v1, v2, line1, line2, vcfReferenceSequences, outputFile, priority)
-    elif not v1.referenceSequence in vcfReferenceSequences:
-      currentReferenceSequence = v1.referenceSequence
-      while v1.referenceSequence == currentReferenceSequence:
-        line1 = v1.filehandle.readline()
-        if not line1: break
-        v1.getRecord(line1)
+# Read in the header information.
+    v1.parseHeader(options.vcfFiles[0], writeOut, True)
+    v2.parseHeader(options.vcfFiles[1], writeOut, True)
 
-# If the end of the first vcf file has been reached, there can be no
-# more intersections, so the calculation is complete.
+# Check that the header for the two files contain the same samples.
+    if v1.samplesList != v2.samplesList:
+      print >> sys.stderr, "vcf files contain different samples (or sample order)."
+      exit(1)
+    else:
+      if priority == 2: writeHeader(outputFile, v2, False) # tools.py
+      else: writeHeader(outputFile, v1, False) # tools.py
 
-    if not line1: break
+# Intersect the two vcf files.
+    intersectVcf(v1, v2, priority, outputFile)
 
 # Close the vcf files.
+    v1.closeVcf(options.vcfFiles[0])
+    v2.closeVcf(options.vcfFiles[1])
 
-  v1.closeVcf(options.vcfFiles[0])
-  v2.closeVcf(options.vcfFiles[1])
-
-# Delete the temp vcf file if one was created from a bed file.
-
-  if options.bedFile != None:
-    os.remove(tempFile)
-
-  exit(0)
+# End the program.
+  return 0

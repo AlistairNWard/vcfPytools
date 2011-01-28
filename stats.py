@@ -11,6 +11,9 @@ from vcfClass import *
 import RTools
 from RTools import *
 
+import tools
+from tools import *
+
 class statistics:
   def __init__(self):
     self.referenceSequences = {}
@@ -23,53 +26,67 @@ class statistics:
 
   def processGeneralStats(self, referenceSequence, rsid, ref, alt, multiAllelic, filters):
     self.referenceSequences[referenceSequence] = True
+    self.transition = False
+    self.transversion = False
 
 # Determine if the SNP is a transition, transversion or multi-allelic.
-
     if multiAllelic == True:
-      if referenceSequence not in self.multiAllelic:
-        self.multiAllelic[referenceSequence] = {}
-
+      if referenceSequence not in self.multiAllelic: self.multiAllelic[referenceSequence] = {}
       self.multiAllelic[referenceSequence][filters] = self.multiAllelic[referenceSequence].get(filters, 0) + 1
     else:
-      if ref < alt:
-        alleles = ref + alt
-      else:
-        alleles = alt + ref
+      if ref < alt: alleles = ref + alt
+      else: alleles = alt + ref
     
 # Increment the number of transitions.  Keep track of whether they are novel or known.
-
       if alleles.lower() == "ag" or alleles.lower() == "ct":
+        self.transition = True
         if rsid == ".":
-          if referenceSequence not in self.novelTransitions:
-            self.novelTransitions[referenceSequence] = {}
-
+          if referenceSequence not in self.novelTransitions: self.novelTransitions[referenceSequence] = {} 
           self.novelTransitions[referenceSequence][filters] = self.novelTransitions[referenceSequence].get(filters, 0) + 1
         else:
-          if referenceSequence not in self.knownTransitions:
-            self.knownTransitions[referenceSequence] = {}
-
+          if referenceSequence not in self.knownTransitions: self.knownTransitions[referenceSequence] = {}
           self.knownTransitions[referenceSequence][filters] = self.knownTransitions[referenceSequence].get(filters, 0) + 1
 
 # Increment the number of transitions.  Keep track of whether they are novel or known.
-
       elif alleles.lower() == "ac" or alleles.lower() == "at" or alleles.lower() == "cg" or alleles.lower() == "gt":
+        self.transversion = True
         if rsid == ".":
-          if referenceSequence not in self.novelTransversions:
-            self.novelTransversions[referenceSequence] = {}
-
+          if referenceSequence not in self.novelTransversions: self.novelTransversions[referenceSequence] = {}
           self.novelTransversions[referenceSequence][filters] = self.novelTransversions[referenceSequence].get(filters, 0) + 1
         else:
-          if referenceSequence not in self.knownTransversions:
-            self.knownTransversions[referenceSequence] = {}
-
+          if referenceSequence not in self.knownTransversions: self.knownTransversions[referenceSequence] = {}
           self.knownTransversions[referenceSequence][filters] = self.knownTransversions[referenceSequence].get(filters, 0) + 1
 
-# Initialise data structures for the distributions.
+# Update an entry in distributions.
+  def updateDistributionEntry(self, tag, key, rsid):
+    if (tag, key) not in self.distributions:
+      self.distributions[ (tag, key) ] = { \
+      "novelTs": 0, \
+      "novelTv": 0, \
+      "knownTs": 0, \
+      "knownTv": 0}
 
-  def initialiseDistributions(self, tag):
-    self.distributions[tag] = {}
+    self.inDbsnp = True
+    if rsid == ".": self.inDbsnp = False
+    if self.inDbsnp:
+      knownTs = self.distributions[ (tag, key) ]["knownTs"] + int(self.transition)
+      knownTv = self.distributions[ (tag, key) ]["knownTv"] + int(self.transversion)
+      novelTs = self.distributions[ (tag, key) ]["novelTs"]
+      novelTv = self.distributions[ (tag, key) ]["novelTv"]
 
+    else:
+      novelTs = self.distributions[ (tag, key) ]["novelTs"] + int(self.transition)
+      novelTv = self.distributions[ (tag, key) ]["novelTv"] + int(self.transversion)
+      knownTs = self.distributions[ (tag, key) ]["knownTs"]
+      knownTv = self.distributions[ (tag, key) ]["knownTv"]
+
+    self.distributions[ (tag, key) ] = { \
+      "novelTs": novelTs, \
+      "novelTv": novelTv, \
+      "knownTs": knownTs, \
+      "knownTv": knownTv}
+
+# Calculate general statistics.
   def printGeneralStats(self, file):
     allNovelTransitions = {}
     allKnownTransitions = {}
@@ -108,7 +125,6 @@ class statistics:
       print >> file, "\nreference sequence:", ref
 
 # Count up the novel transitions for each filter.
-
       if ref in self.novelTransitions:
         for key, value in self.novelTransitions[ref].iteritems():
           novelTransitions["total"] = novelTransitions.get("total", 0) + value
@@ -120,7 +136,6 @@ class statistics:
             allFilters[filter] = True
 
 # Count up the known transitions for each filter.
-
       if ref in self.knownTransitions:
         for key, value in self.knownTransitions[ref].iteritems():
           knownTransitions["total"] = knownTransitions.get("total", 0) + value
@@ -132,7 +147,6 @@ class statistics:
             allFilters[filter] = True
 
 # Count up the novel transversions for each filter.
-
       if ref in self.novelTransversions:
         for key, value in self.novelTransversions[ref].iteritems():
           novelTransversions["total"] = novelTransversions.get("total", 0) + value
@@ -144,7 +158,6 @@ class statistics:
             allFilters[filter] = True
 
 # Count up the known transversions for each filter.
-
       if ref in self.knownTransversions:
         for key, value in self.knownTransversions[ref].iteritems():
           knownTransversions["total"] = knownTransversions.get("total", 0) + value
@@ -156,7 +169,6 @@ class statistics:
             allFilters[filter] = True
 
 # Count up the number of multi-allelic sites.
-
       if ref in self.multiAllelic:
         for key, value in self.multiAllelic[ref].iteritems():
           filters = key.split(";")
@@ -166,7 +178,6 @@ class statistics:
             allFilters[filter] = True
 
 # Create a list of the filters and put "total" and "PASS" at the end.
-
       filterList = []
       for filter, value in allFilters.iteritems():
         if filter != "total" and filter != "PASS":
@@ -177,7 +188,6 @@ class statistics:
         filterList.append("PASS")
 
 # Calculate the dbsnp fraction and Ts/Tv ratio for each filter.
-
       for index, filter in enumerate(filterList):
         novelTs = novelTransitions.get(filter, 0)
         novelTv = novelTransversions.get(filter, 0)
@@ -264,31 +274,54 @@ class statistics:
     print >> file
 
 # Print out the distributions.
-
   def printDistributions(self, file, plot):
-    for tag, value in self.distributions.iteritems():
-      print >> file, "Statistics for information field: ", tag
-      keys = self.distributions[tag].keys()
-      keys.sort()
-      if plot:
-        tempOutput = open("Rdata", 'w')
 
-      for key in keys:
-        print >> file, key, self.distributions[tag][key]
+# Build a sorted list of values for each tag.
+    tagList = {}
+    for tag, value in self.distributions:
+      tagList.setdefault(tag, []).append(value)
+
+    for tag in tagList:
+      print >> file, "Statistics for information field: ", tag
+      values = tagList[tag]
+      values.sort()
+      if plot: tempOutput = open("Rdata", 'w')
+
+      for value in values:
+        print >> file, value, \
+                       self.distributions[ (tag,value) ]["novelTs"], \
+                       self.distributions[ (tag,value) ]["novelTv"], \
+                       self.distributions[ (tag,value) ]["knownTs"], \
+                       self.distributions[ (tag,value) ]["knownTv"]
+
         if plot:
-          print >> tempOutput, key, self.distributions[tag][key]
+          print >> tempOutput, value, \
+                               self.distributions[ (tag,value) ]["novelTs"], \
+                               self.distributions[ (tag,value) ]["novelTv"], \
+                               self.distributions[ (tag,value) ]["knownTs"], \
+                               self.distributions[ (tag,value) ]["knownTv"]
       print >> file
 
       if plot:
         pdfFile = "dist" + tag
         pdfRoot = pdfFile.split(".",2)
         pdfFile = pdfRoot[0] + ".pdf"
-        RScript = createRHistScript(pdfFile)
+        if tag == "quality":
+          RScript = createRScript(pdfFile, tag, 3)
+        elif tag == "DP":
+          RScript = createRScript(pdfFile, tag, 1)
+        elif tag == "AB":
+          RScript = createRScript(pdfFile, tag, 2)
+        elif tag == "SB":
+          RScript = createRScript(pdfFile, tag, 2)
+        else:
+          RScript = createRScript(pdfFile, tag, 0)
         success = subprocess.call("R CMD BATCH vcfPytoolsRScript.R", shell=True)
-        os.remove("Rdata")
-        os.remove(RScript)
-        RScript = RScript + "out"
-        os.remove(RScript)
+        if plotRemove:
+          os.remove("Rdata")
+          os.remove(RScript)
+          RScript = RScript + "out"
+          os.remove(RScript)
 
 if __name__ == "__main__":
   main()
@@ -296,7 +329,6 @@ if __name__ == "__main__":
 def main():
 
 # Parse the command line options
-
   usage = "Usage: vcfPytools.py stats [options]"
   parser = optparse.OptionParser(usage = usage)
   parser.add_option("-i", "--in",
@@ -315,40 +347,32 @@ def main():
   parser.add_option("-p", "--plot",
                     action="store_true", default=False,
                     dest="plotDist", help="use R to plot distributions")
+  parser.add_option("-q", "--quality",
+                    action="store_true", default=False,
+                    dest="quality", help="calculate distribution of quality values")
 
   (options, args) = parser.parse_args()
 
 # Check that a vcf file is given.
-
   if options.vcfFile == None:
     parser.print_help()
     print >> sys.stderr, "\nInput vcf file (-i) is required."
     exit(1)
 
 # Set the output file to stdout if no output file was specified.
-
-  if options.output == None:
-    outputFile = sys.stdout
-    writeOut = False
-  else:
-    outputFile = open(options.output, 'w')
-    writeOut = True
+  outputFile, writeOut = setOutput(options.output) # tools.py
 
   v = vcf() # Define vcf object.
 
 # Open the file.
-
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-
   stats = statistics() # Define statistics object
-
   v.parseHeader(options.vcfFile, writeOut, True)
 
 # If distributions for all the info fields listed in the header are
 # requested, populate options.distributions with these values.
-
   if options.distributions:
     v.processInfo = True
     if options.distributions[0].lower() == "all" and len(options.distributions) == 1:
@@ -363,42 +387,47 @@ def main():
 
 # Check that the requested info fields exist in the vcf file and
 # initialise statistics dictionaries.
-
   if options.distributions:
     for tag in options.distributions:
       v.checkInfoFields(tag)
-      stats.initialiseDistributions(tag)
 
 # Read through all the entries.
-
-  for line in v.filehandle:
-    v.getRecord(line)
+  success = 0
+  while success == 0:
+    success = v.getRecord()
     getStats = False if (options.passed and v.filters != "PASS") else True
     stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.multiAllelic, v.filters)
+
+    if options.quality and getStats:
+      key = int(v.quality)
+      stats.updateDistributionEntry("quality", key, v.rsid)
+
     if options.distributions and getStats:
       for tag in options.distributions:
         tagNumber, tagType, tagValue = v.getInfo(tag)
 
 # Deal with info tags that contain one value only.
-
         if tagNumber == 1:
           if tagType.lower() == "integer":
             key = int(tagValue[0])
-            stats.distributions[tag][key] = stats.distributions[tag].get(key, 0) + 1
+            stats.updateDistributionEntry(tag, key, v.rsid)
+          elif tagType.lower() == "float":
+            key = round(float(tagValue[0]), 3)
+            stats.updateDistributionEntry(tag, key, v.rsid)
           else:
-            print >> sys.stderr, "Cannot handle info tags with non-integer values. ( Filter", tag, ")"
+            print >> sys.stderr, "Cannot handle info tags without either and integer or float value. ( Filter", tag, ")"
 
 # Deal with info tags with multiple values.
-
         else:
           print >> sys.stderr, "Cannot handle info tags with multiple values. ( Filter:", tag, ")"
 
 # Close the file.
-
   v.closeVcf(options.vcfFile)
 
 # Print out the stats.
-
   stats.printGeneralStats(outputFile)
-  if options.distributions:
+  if options.distributions or options.quality:
     stats.printDistributions(outputFile, options.plotDist)
+
+# Terminate the program cleanly.
+  return 0
