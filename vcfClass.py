@@ -223,7 +223,7 @@ class vcf:
         if writeOut: outputFile.write(self.record)
         success = self.getRecord()
 
-    while self.position < position and success == 0:
+    while self.referenceSequence == referenceSequence and self.position < position and success == 0:
       if writeOut: outputFile.write(self.record)
       success = self.getRecord()
 

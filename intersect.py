@@ -64,8 +64,23 @@ def writeVcfRecord(priority, v1, v2, outputFile):
 # two files are sorted by genomic coordinates and the reference
 # sequences are in the same order.
 def intersectVcfBed(v, b, outputFile):
-  print "Not yet implemented"
-  exit(0)
+  successb = b.getRecord()
+  successv = v.getRecord()
+  currentReferenceSequence = v.referenceSequence
+
+# As soon as the end of the first file is reached, there are no
+# more intersections and the program can terminate.
+  while successv == 0:
+    if v.referenceSequence == b.referenceSequence:
+      if v.position < b.start: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
+      elif v.position > b.end: successb = b.parseBed(v.referenceSequence, v.position)
+      else:
+        outputFile.write(v.record)
+        successv = v.getRecord()
+    else:
+      if v.referenceSequence == currentReferenceSequence: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
+      if b.referenceSequence == currentReferenceSequence: successb = b.parseBed(v.referenceSequence, v.position)
+      currentReferenceSequence = v.referenceSequence
 
 def main():
 
@@ -115,7 +130,7 @@ def main():
 
 # Read in the header information.
     v.parseHeader(options.vcfFiles[0], writeOut, True)
-    writeHeader(outputFile, v1, False) # tools.py
+    writeHeader(outputFile, v, False) # tools.py
 
 # Intersect the vcf file with the bed file.
     intersectVcfBed(v, b, outputFile)
