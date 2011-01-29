@@ -10,17 +10,15 @@ class bed:
   def openBed(self, filename):
     if filename == "stdin": self.filehandle = sys.stdin
     else:
-      exists = os.path.exists(filename)
-      if exists == False:
+      try: self.filehandle = open(filename,"r")
+      except IOError:
         print >> sys.stderr, "Failed to find file: ",filename
         exit(1)
-
-      self.filehandle = open(filename,"r")
 
 # Get a bed record.
   def getRecord(self):
     self.record = self.filehandle.readline()
-    if not self.record: return 1
+    if not self.record: return False
 
     self.numberTargets = self.numberTargets + 1
     self.ref = ""
@@ -46,16 +44,16 @@ class bed:
       print >> sys.stderr, "Invalid target interval:\n\t", self.record
       exit(1)
 
-    return 0
+    return True
 
 # Parse through the bed file until the correct reference sequence is
 # encountered and the end position is greater than or equal to that requested.
   def parseBed(self, referenceSequence, position):
-    success = 0
+    success = True
     if self.referenceSequence != referenceSequence:
-      while self.referenceSequence != referenceSequence and success == 0: success = self.getRecord()
+      while self.referenceSequence != referenceSequence and success: success = self.getRecord()
 
-    while self.referenceSequence == referenceSequence and self.end < position and success == 0: success = self.getRecord()
+    while self.referenceSequence == referenceSequence and self.end < position and success: success = self.getRecord()
 
     return success
 

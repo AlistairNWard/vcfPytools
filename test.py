@@ -33,12 +33,11 @@ def main():
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-  v.parseHeader(options.vcfFile, False, True)
+  v.parseHeader(options.vcfFile, False)
 
 # Perform testing.
-  success = 0
-  while success == 0:
-    success = v.getRecord()
+  while v.getRecord()::
+    continue
 
 # Close the vcf files.
   v.closeVcf(options.vcfFile)

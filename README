@@ -1,12 +1,12 @@
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 README: vcfPytools
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 vcfPytools is a set of tools in python for manipulation vcf v4.0 files.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Available tools:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 	dbsnp - annotate a vcf file with dbSNP rsid values.
 	extract - extract reads from a specified region.
@@ -19,9 +19,9 @@ Available tools:
 	unique - generate a vcf file of the unique records in a vcf file.
 	validate - validate a vcf file.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 General information:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
   The tools in vcfPytools are written to try and minimise the memroy
 usage.  As a result, they are not necessarily as quick or as efficient
@@ -35,9 +35,9 @@ defined input files.
 
   If no output file is defined, the output will be sent to stdout.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 dbsnp:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py dbsnp [options]
 
@@ -51,9 +51,9 @@ also be in vcf v4.0 format.
 
   Only dbSNP entries with VC=SNP are included.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 extract:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py extract [options]
 
@@ -62,6 +62,9 @@ options:
 	--out (-o):			output vcf file
 	--reference-sequence (-s):	extract records from reference sequence
 	--region (-r):			extract records from region
+        --keep-info (-k):		only keep records containing this field
+	--discard-info (-d):		discard records containing this field
+        --pass-filter (-p):		discard records with a failed filter
 
   Option --ref (-s) outputs all records from the specified reference
 sequence from the input vcf file into the output vcf file.
@@ -70,9 +73,20 @@ sequence from the input vcf file into the output vcf file.
 from the input vcf file into the output vcf file.  The format of the
 region is ref:start..end, where the start and end coordinates are 1-based.
 
-------------------------------------------------------------------------
+  Option --keep-info (-k) allows all records to be removed unless they contain
+this value in the info field.
+
+  Option --discard-info (-d) ensures that all records containing this value in
+the info field will not be included in the output file.  This cannot be used
+in conjunction with --keep-info to avoid conflict.
+
+  Option --pass-filter (-p) will only output records that have the filter field
+populated with PASS.  All filtered records or records that haven't undergone
+filtering (filter=.) will be discarded.
+
+-------------------------------------------------------------------------------
 filter:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py filter [options]
 
@@ -94,9 +108,9 @@ less than 10 and the filter field would be populated with DP10.
 
   This command line argument can be defined as many times as required.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 intersect:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py intersect [options]
 
@@ -119,9 +133,9 @@ of the input vcf files), then the record written to the output will come
 from this file.  If this argument is not set, the record with the
 highest quality is written out.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 merge:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py merge [options]
 
@@ -134,9 +148,9 @@ achieved by appending all the files to a single output and so if the
 input files contain records for the same reference sequence, the
 resulting output file will not be sorted.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 sort:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py sort [options]
 
@@ -146,9 +160,9 @@ options:
 
   The input vcf file is sorted by genomic coordinates.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 stats:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py stats [options]
 
@@ -180,9 +194,9 @@ filtered records.
   The --plot (-p) argument will use R to generate plots for the requested
 distributions.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 union:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py union [options]
 
@@ -194,9 +208,9 @@ options:
   Generate the union of the two input vcf files.  The comments included
 in the explanation of the intersection tool are applicable to this tool.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 unique:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py unique [options]
 
@@ -207,9 +221,9 @@ options:
   Output the records that are unique to the first inputted vcf file
 when compared with another vcf file.
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 validate:
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 python vcfPytools.py validate [options]
 

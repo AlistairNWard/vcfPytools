@@ -37,7 +37,7 @@ def main():
   for index, vcfFile in enumerate(options.vcfFiles):
     v = vcf() # Define vcf object
     v.openVcf(vcfFile) # Open the vcf file
-    v.parseHeader(vcfFile, True, True)
+    v.parseHeader(vcfFile, True)
 
 # Store the header from the first vcf file.  The samplesList from 
 # all other vcf files being merged will be checked against this.
@@ -53,7 +53,7 @@ def main():
         print >> sys.stderr, "WARNING: Different samples in file: ", vcfFile
 
 # print out the records.
-    while v.getRecord() == 0:
+    while v.getRecord():
       outputFile.write(v.record)
 
     v.closeVcf(vcfFile) # Close the vcf file

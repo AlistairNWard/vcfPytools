@@ -23,18 +23,18 @@ def unionVcf(v1, v2, priority, outputFile):
   success2 = v2.getRecord()
   currentReferenceSequence = v1.referenceSequence
 
-# Finish when the end of the first file has been reached.
-  while success1 == 0 or success2 == 0:
+# Finish when the end of either file has been reached.
+  while success1 or success2:
 
 # If the end of the first vcf file is reached, write out the
 # remaining records from the second vcf file.
-    if success1 == 1:
+    if not success1:
       outputFile.write(v2.record)
       success2 = v2.getRecord()
 
 # If the end of the second vcf file is reached, write out the
 # remaining records from the first vcf file.
-    if success2 == 1:
+    if not success2:
       outputFile.write(v1.record)
       success1 = v1.getRecord()
 
@@ -94,8 +94,8 @@ def main():
   v2.openVcf(options.vcfFiles[1])
 
 # Read in the header information.
-  v1.parseHeader(options.vcfFiles[0], writeOut, True)
-  v2.parseHeader(options.vcfFiles[1], writeOut, True)
+  v1.parseHeader(options.vcfFiles[0], writeOut)
+  v2.parseHeader(options.vcfFiles[1], writeOut)
 
 # Check that the header for the two files contain the same samples.
   if v1.samplesList != v2.samplesList:

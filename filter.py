@@ -57,7 +57,7 @@ def main():
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-  v.parseHeader(options.vcfFile, writeOut, True)
+  v.parseHeader(options.vcfFile, writeOut)
 
 # Check that specified filters from the info field are either integers or floats.
   if options.infoFilters:
@@ -107,7 +107,7 @@ def main():
 # Parse the vcf file and check if any of the filters are failed.  If
 # so, build up a string of failed filters.
   writeHeader(outputFile, v, options.removeGeno)
-  while v.getRecord() == 0:
+  while v.getRecord():
     filterString = ""
 
 # Check for quality filtering.

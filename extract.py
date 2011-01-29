@@ -30,6 +30,15 @@ def main():
   parser.add_option("-r", "--region",
                     action="store", type="string",
                     dest="region", help="extract records from this region")
+  parser.add_option("-k", "--keep-info",
+                    action="append", type="string",
+                    dest="infoKeep", help="keep records conataining this info field")
+  parser.add_option("-d", "--discard-info",
+                    action="append", type="string",
+                    dest="infoDiscard", help="discard records containing this info field")
+  parser.add_option("-p", "--pass-filter",
+                    action="store_true", default=False,
+                    dest="passFilter", help="discard records whose filter field is not PASS")
 
   (options, args) = parser.parse_args()
 
@@ -40,14 +49,16 @@ def main():
     exit(1)
 
 # Check that either a reference sequence or region is specified,
-# but not both.
-  if not options.referenceSequence and not options.region:
-    parser.print_help()
-    print >> sys.stderr, "\nA region (--region, -r) or reference sequence (--reference-sequence, -s) must be supplied."
-    exit(1)
+# but not both if not dealing with info fields.
+  if not options.infoKeep and not options.infoDiscard:
+    if not options.referenceSequence and not options.region:
+      parser.print_help()
+      print >> sys.stderr, "\nA region (--region, -r) or reference sequence (--reference-sequence, -s) must be supplied"
+      print >> sys.stderr, "if not extracting records based on info strings."
+      exit(1)
   if options.referenceSequence and options.region:
     parser.print_help()
-    print >> sys.stderr, "\nEither a region (--region, -r) or reference sequence (--reference-sequence, -s) must be supplied, but not both."
+    print >> sys.stderr, "\nEither a region (--region, -r) or reference sequence (--reference-sequence, -s) can be supplied, but not both."
     exit(1)
 
 # If a region was supplied, check the format.
@@ -66,28 +77,46 @@ def main():
       print >> sys.stderr, "region end coordinate is not an integer"
       exit(1)
 
+# Ensure that discard-info and keep-info haven't both been defined.
+  if options.infoKeep and options.infoDiscard:
+    print >> sys.stderr, "Cannot specify fields to keep and discard simultaneously."
+    exit(1)
+
 # Set the output file to stdout if no output file was specified.
   outputFile, writeOut = setOutput(options.output)
 
   v = vcf() # Define vcf object.
 
+# Set process info to True if info strings need to be parsed.
+  if options.infoKeep or options.infoDiscard: v.processInfo = True
+
 # Open the file.
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-  v.parseHeader(options.vcfFile, writeOut, True)
+  v.parseHeader(options.vcfFile, writeOut)
+  writeHeader(outputFile, v, False) # tools.py
 
 # Read through all the entries and write out records in the correct
 # reference sequence.
-  if options.referenceSequence:
-    while v.getRecord() == 0:
-      if v.referenceSequence == options.referenceSequence: outputFile.write(v.record)
+  while v.getRecord():
+    writeRecord = True
+    if options.referenceSequence and v.referenceSequence != options.referenceSequence: writeRecord = False
+    elif options.region:
+      if v.referenceSequence != referenceSequence: writeRecord = False
+      elif v.position < start or v.position > end: writeRecord = False
 
-# Read through all the entries and write out records in the correct
-# region.
-  elif options.region:
-    while v.getRecord() == 0:
-      if v.referenceSequence == referenceSequence and v.position >= start and v.position <= end: outputFile.write(v.record)
+# Only consider these fields if the record is contained within the
+# specified region.
+    if options.infoKeep and writeRecord:
+      for tag in options.infoKeep:
+        if not v.infoTags.has_key(tag): writeRecord = False
+    if options.infoDiscard and writeRecord:
+      for tag in options.infoDiscard:
+        if v.infoTags.has_key(tag): writeRecord = False
+    if options.passFilter and v.filter != "PASS" and writeRecord: writerecord = False
+
+    if writeRecord: outputFile.write(v.record)
 
 # Close the file.
   v.closeVcf(options.vcfFile)

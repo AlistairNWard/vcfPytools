@@ -42,7 +42,7 @@ def main():
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-  v.parseHeader(options.vcfFile, writeOut, True)
+  v.parseHeader(options.vcfFile, writeOut)
   v.processInfo = True
   v.processGenotypes = True
   parsedReferenceSequences = {}
@@ -52,7 +52,7 @@ def main():
 # Read through all the entries.
   previousReference = ""
   previousPosition = 0
-  while v.getRecord() == 0:
+  while v.getRecord():
 
 # Check that the current position isn't before the previous
 # position (if in the same reference sequence) or that the

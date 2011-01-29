@@ -42,7 +42,7 @@ def main():
   v.openVcf(options.vcfFile)
 
 # Read in the header information.
-  v.parseHeader(options.vcfFile, writeOut, True)
+  v.parseHeader(options.vcfFile, writeOut)
   writeHeader(outputFile, v, False)
 
 # Parse the vcf file and for each reference sequence, output
@@ -51,7 +51,7 @@ def main():
 # the amount of information requiring storage in memory.
   tempFiles = {}
   tempPositionsFiles = {}
-  while v.getRecord() == 0:
+  while v.getRecord():
     tempPositionsFile = "positions." + v.referenceSequence + ".vcfPytools.tmp"
     tempFile = "records." + v.referenceSequence + ".vcfPytools.tmp"
     if tempFile not in tempFiles:
@@ -136,7 +136,7 @@ def main():
         storedRecords[v1.position] = True
 
         success = v1.getRecord()
-        if success == 1: break
+        if not success: break
 
 # If the position in the vcf file agrees with that in the positions
 # file, then the record can be written to file.
@@ -144,7 +144,7 @@ def main():
         outputFile.write(v1.record)
 
         success = v1.getRecord()
-        if success == 1: break
+        if not success: break
 
         position = int( positionsFilehandle.readline() )
         if not position: break

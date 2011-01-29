@@ -36,7 +36,7 @@ def intersectVcf(v1, v2, priority, outputFile):
 
 # As soon as the end of either file is reached, there can be no
 # more intersecting SNPs, so terminate.
-  while success1 == 0 and success2 == 0:
+  while success1 and success2:
     if v1.referenceSequence == v2.referenceSequence:
       if v1.position == v2.position:
         writeVcfRecord(priority, v1, v2, outputFile)
@@ -70,7 +70,7 @@ def intersectVcfBed(v, b, outputFile):
 
 # As soon as the end of the first file is reached, there are no
 # more intersections and the program can terminate.
-  while successv == 0:
+  while successv:
     if v.referenceSequence == b.referenceSequence:
       if v.position < b.start: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
       elif v.position > b.end: successb = b.parseBed(v.referenceSequence, v.position)
@@ -129,7 +129,7 @@ def main():
     b.openBed(options.bedFile)
 
 # Read in the header information.
-    v.parseHeader(options.vcfFiles[0], writeOut, True)
+    v.parseHeader(options.vcfFiles[0], writeOut)
     writeHeader(outputFile, v, False) # tools.py
 
 # Intersect the vcf file with the bed file.
@@ -149,8 +149,8 @@ def main():
     v2.openVcf(options.vcfFiles[1])
 
 # Read in the header information.
-    v1.parseHeader(options.vcfFiles[0], writeOut, True)
-    v2.parseHeader(options.vcfFiles[1], writeOut, True)
+    v1.parseHeader(options.vcfFiles[0], writeOut)
+    v2.parseHeader(options.vcfFiles[1], writeOut)
 
 # Check that the header for the two files contain the same samples.
     if v1.samplesList != v2.samplesList:

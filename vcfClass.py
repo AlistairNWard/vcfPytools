@@ -24,107 +24,101 @@ class vcf:
     self.processGenotypes = False
     self.dbsnpVcf = False
 
+# Open a vcf file.
   def openVcf(self, filename):
-    if filename == "stdin":
-      self.filehandle = sys.stdin
+    if filename == "stdin": self.filehandle = sys.stdin
     else:
-      exists = os.path.exists(filename)
-      if exists == False:
+      try: self.filehandle = open(filename,"r")
+      except IOError:
         print >> sys.stderr, "Failed to find file: ",filename
         exit(1)
 
-      self.filehandle = open(filename,"r")
-
 # Parse the vcf header.
-  def parseHeader(self, filename, writeOut, fullParse):
-    while True:
-      rawLine = self.filehandle.readline()
-      if rawLine is None: break
-      line = rawLine.rstrip("\n")
-      if line.startswith("##"):
-        if fullParse:
-          tagValue = line.split("=",1)
-          if tagValue[0] == "##INFO":
-            self.headerInfoText = self.headerInfoText + line + "\n"
-            id = (tagValue[1].split("ID=",1))[1].split(",",1)
+  def parseHeader(self, filename, writeOut):
+    while self.getHeaderLine(filename, writeOut):
+      continue
+
+# Determine the type of information in the header line.
+  def getHeaderLine(self, filename, writeOut):
+    self.headerLine = self.filehandle.readline().rstrip("\n")
+    if self.headerLine.startswith("##INFO"): success = self.headerInfo(writeOut, "info")
+    elif self.headerLine.startswith("##FORMAT"): success = self.headerInfo(writeOut, "format")
+    elif self.headerLine.startswith("##"): success = self.headerAdditional()
+    elif self.headerLine.startswith("#"): success = self.headerTitleString(filename, writeOut)
+    else: success = self.noHeader(filename, writeOut)
+
+    return success
+
+# Read information on an info field from the header line.
+  def headerInfo(self, writeOut, lineType):
+    if lineType == "info": self.headerInfoText = self.headerInfoText + self.headerLine + "\n"
+    elif lineType == "format": self.headerFormatText = self.headerFormatText + self.headerLine + "\n"
+    tag = self.headerLine.split("=",1)
+    tagID = (tag[1].split("ID=",1))[1].split(",",1)
 
 # Check if this info field has already been defined.
-            if self.infoHeaderTags.has_key(id[0]):
-              print >> sys.stderr, "Info tag \"", id[0], "\" is defined multiple times in the header."
-              exit(1)
+    if (lineType == "info" and self.infoHeaderTags.has_key(tagID[0])) or (lineType == "format" and self.formatHeaderTags.has_key(tagID[0])):
+      print >> sys.stderr, "Info tag \"", tagID[0], "\" is defined multiple times in the header."
+      exit(1)
 
 # Determine the number of entries, entry type and description.
-            number = (id[1].split("Number=",1))[1].split(",",1)
-            type = (number[1].split("Type=",1))[1].split(",",1)
-            description = type[1].split("Description=\"",1)
+    tagNumber = (tagID[1].split("Number=",1))[1].split(",",1)
+    tagType = (tagNumber[1].split("Type=",1))[1].split(",",1)
+    try: tagDescription = ( ( (tagType[1].split("Description=\"",1))[1] ).split("\">") )[0]
+    except IndexError: tagDescription = ""
+    tagID = tagID[0]; tagNumber = tagNumber[0]; tagType = tagType[0]
 
-# Check that the number of fields associated with the tag is as integer.
-            if number[0] == ".": number = "variable"
-            else:
-              try: number = int(number[0])
-              except ValueError:
-                print >> sys.stderr, "\nError parsing header.  Problem with info tag:", id[0]
-                print >> sys.stderr, "Number of fields associated with this tag is not an integer or '.'"
-                exit(1)
+# Check that the number of fields associated with the tag is either
+# an integer or a '.' to indicate variable number of entries.
+    if tagNumber == ".": tagNumber = "variable"
+    else:
+      try: tagNumber = int(tagNumber)
+      except ValueError:
+        print >> sys.stderr, "\nError parsing header.  Problem with info tag:", tagID
+        print >> sys.stderr, "Number of fields associated with this tag is not an integer or '.'"
+        exit(1)
 
-            self.infoHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
+    if lineType == "info": self.infoHeaderTags[tagID] = tagNumber, tagType, tagDescription
+    if lineType == "format": self.formatHeaderTags[tagID] = tagNumber, tagType, tagDescription
 
-          elif tagValue[0] == "##FORMAT":
-            self.headerFormatText = self.headerFormatText + line + "\n"
-            id = (tagValue[1].split("ID=",1))[1].split(",",1)
+    return True
 
-# Check if this format field has already been defined.
-            if self.formatHeaderTags.has_key(id[0]):
-              print >> sys.stderr, "Format tag \"", id[0], "\"is defined multiple times in the header."
-              exit(1)
+# Read additional information contained in the header.
+  def headerAdditional(self):
+    self.headerText = self.headerText + self.headerLine + "\n"
 
-# Determine the number of entries, entry type and description.
-            number = (id[1].split("Number=",1))[1].split(",",1)
-            type = (number[1].split("Type=",1))[1].split(",",1)
-            description = type[1].split("\"",1)
+    return True
 
-# Check that the number of fields associated with the tag is as integer.
-            if number[0] == ".": number = "variable"
-            else:
-              try: number = int(number[0])
-              except ValueError:
-                print >> sys.stderr, "\nError parsing header.  Problem with format tag:", id[0]
-                print >> sys.stderr, "Number of fields associated with this tag is not an integer."
-                exit(1)
-
-            self.formatHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
-          else: self.headerText = self.headerText + line + "\n"
-
-# The final line in the header should be the line defining the
-# contents of the columns in the vcf file.
-      elif line.startswith("#"):
-        self.headerTitles = line + "\n"
+# Read in the column titles to check that all standard fields
+# are present and read in all the samples.
+  def headerTitleString(self, filename, writeOut):
+    self.headerTitles = self.headerLine + "\n"
 
 # Strip the end of line character from the last infoFields entry.
-        infoFields = line.rstrip("\n").split("\t")
-        numberInfoFields = len(infoFields)
-        if numberInfoFields > 8:
-          if numberInfoFields - 9 == 1:
-            if writeOut == True: print >> sys.stderr, numberInfoFields - 9, " sample present in vcf file: ", filename
-          else:
-            if writeOut == True: print >> sys.stderr, numberInfoFields - 9, " samples present in vcf file: ", filename
-          self.samplesList = infoFields[9:]
-          self.genotypes = True
-        else:
-          if writeOut == True:
-            print >> sys.stderr, "No samples present in the header."
-            print >> sys.stderr, "No genotype information available."
-        break
+    infoFields = self.headerLine.split("\t")
+    if len(infoFields) > 8:
+      if len(infoFields) - 9 == 1 and writeOut: print >> sys.stderr, numberInfoFields - 9, " sample present in vcf file: ", filename
+      elif writeOut: print >> sys.stderr, numberInfoFields - 9, " samples present in vcf file: ", filename
+      self.samplesList = infoFields[9:]
+      self.genotypes = True
+    elif len(infoFields) == 8:
+      if writeOut: print >> sys.stderr, "No samples present in the header.  No genotype information available."
+    else:
+      print >> sys.stderr, "Not all vcf standard fields are available."
+      exit(1)
 
-# If there is no header in the vcf file, close and reopen the vcf file, so that
-# the first line called will be the first line of the file.
-      else:
-        if writeOut == True: print >> sys.stderr, "No header lines present in", filename
+    return False
 
-        self.hasHeader = False
-        self.closeVcf(filename)
-        self.openVcf(filename)
-        break
+# If there is no header in the vcf file, close and reopen the
+# file so that the first line is avaiable for parsing as a 
+# vcf record.
+  def noHeader(self, filename, writeOut):
+    if writeOut: print >> sys.stderr, "No header lines present in", filename
+    self.hasHeader = False
+    self.closeVcf(filename)
+    self.openVcf(filename)
+
+    return False
 
 # Check that info fields exist.
   def checkInfoFields(self, tag):
@@ -135,7 +129,7 @@ class vcf:
 # Get the next line of information from the vcf file.
   def getRecord(self):
     self.record = self.filehandle.readline()
-    if not self.record: return 1
+    if not self.record: return False
 
     vcfEntries      = self.record.rstrip("\n").split("\t")
     self.referenceSequence = vcfEntries[0]
@@ -216,18 +210,18 @@ class vcf:
 
           for j in range( len(self.genotypeFormats) ): self.genotypeFields[ self.samplesList[i] ][ self.genotypeFormats[j] ] = genotypeInfo[j]
 
-    return 0
+    return True
 
 # Parse through the vcf file until the correct reference sequence is
 # encountered and the position is greater than or equal to that requested.
   def parseVcf(self, referenceSequence, position, writeOut, outputFile):
-    success = 0
+    success = True
     if self.referenceSequence != referenceSequence:
-      while self.referenceSequence != referenceSequence and success == 0:
+      while self.referenceSequence != referenceSequence and success:
         if writeOut: outputFile.write(self.record)
         success = self.getRecord()
 
-    while self.referenceSequence == referenceSequence and self.position < position and success == 0:
+    while self.referenceSequence == referenceSequence and self.position < position and success:
       if writeOut: outputFile.write(self.record)
       success = self.getRecord()
 

@@ -32,11 +32,11 @@ def annotateVcf(v, d, outputFile):
   currentReferenceSequence = v.referenceSequence
 
 # Finish when the end of the first file has been reached.
-  while success1 == 0:
+  while success1:
 
 # If the end of the dbsnp vcf file is reached, write out the
 # remaining records from the vcf file.
-    if success2 == 1:
+    if not success2:
       outputFile.write(v.record)
       success1 = v.getRecord()
 
@@ -99,8 +99,8 @@ def main():
   d.openVcf(options.dbsnpFile)
 
 # Read in the header information.
-  v.parseHeader(options.vcfFile, writeOut, True)
-  d.parseHeader(options.dbsnpFile, writeOut, True)
+  v.parseHeader(options.vcfFile, writeOut)
+  d.parseHeader(options.dbsnpFile, writeOut)
 
 # Add an extra line to the vcf header to indicate the file used for
 # performing dbsnp annotation.

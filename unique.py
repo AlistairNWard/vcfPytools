@@ -18,12 +18,12 @@ def uniqueVcf(v1, v2, outputFile):
 
 # If the end of the first vcf file is reached, it can
 # have no more unique records, so terminate.
-  while success1 == 0:
+  while success1:
 
 # If the end of the second file is reached, output all
 # of the remaining records from the first vcf file as
 # they must all be unique.
-    if success2 == 1:
+    if not success2:
       outputFile.write(v1.record)
       success1 = v1.getRecord()
 
@@ -75,8 +75,8 @@ def main():
   v2.openVcf(options.vcfFiles[1])
 
 # Read in the header information.
-  v1.parseHeader(options.vcfFiles[0], writeOut, True)
-  v2.parseHeader(options.vcfFiles[1], writeOut, True)
+  v1.parseHeader(options.vcfFiles[0], writeOut)
+  v2.parseHeader(options.vcfFiles[1], writeOut)
 
 # Make it clear to the user which unique fraction is being
 # calculated.  It is always the first vcf file inputted.

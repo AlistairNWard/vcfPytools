@@ -417,7 +417,7 @@ def main():
 
 # Read in the header information.
   stats = statistics() # Define statistics object
-  v.parseHeader(options.vcfFile, writeOut, True)
+  v.parseHeader(options.vcfFile, writeOut)
 
 # If distributions for all the info fields listed in the header are
 # requested, populate options.distributions with these values.
@@ -440,7 +440,7 @@ def main():
       v.checkInfoFields(tag)
 
 # Read through all the entries.
-  while v.getRecord() == 0:
+  while v.getRecord():
     getStats = False if (options.passed and v.filters != "PASS") else True
     stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.multiAllelic, v.filters)
 
