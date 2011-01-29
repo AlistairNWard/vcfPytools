@@ -30,7 +30,7 @@ def main():
 # Check that a vcf file is given.
   if options.vcfFile == None:
     parser.print_help()
-    print >> sys.stderr, "\nInput vcf file (-i) is required."
+    print >> sys.stderr, "\nInput vcf file (--in, -i) is required."
     exit(1)
 
 # Set the output file to stdout if no output file was specified.
@@ -52,9 +52,7 @@ def main():
 # Read through all the entries.
   previousReference = ""
   previousPosition = 0
-  success = 0
-  while success == 0:
-    success = v.getRecord()
+  while v.getRecord() == 0:
 
 # Check that the current position isn't before the previous
 # position (if in the same reference sequence) or that the
@@ -64,7 +62,9 @@ def main():
     if previousReference != v.referenceSequence:
       if parsedReferenceSequences.has_key(v.referenceSequence): sortError = True
     elif v.position < previousPosition: sortError = True
-    elif v.position == previousPosition: duplicateError = True
+    elif v.position == previousPosition:
+      duplicateError = True
+      print v.referenceSequence, v.position, "is duplicated"
       
     previousReference = v.referenceSequence
     previousPosition = v.position

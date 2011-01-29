@@ -53,9 +53,7 @@ def main():
         print >> sys.stderr, "WARNING: Different samples in file: ", vcfFile
 
 # print out the records.
-    success = 0
-    while success == 0:
-      success = v.getRecord()
+    while v.getRecord() == 0:
       outputFile.write(v.record)
 
     v.closeVcf(vcfFile) # Close the vcf file

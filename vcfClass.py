@@ -59,11 +59,13 @@ class vcf:
             description = type[1].split("Description=\"",1)
 
 # Check that the number of fields associated with the tag is as integer.
-            try: number = int(number[0])
-            except ValueError:
-              print >> sys.stderr, "\nError parsing header.  Problem with info tag:", id[0]
-              print >> sys.stderr, "Number of fields associated with this tag is not an integer."
-              exit(1)
+            if number == ".": number = "variable"
+            else:
+              try: number = int(number[0])
+              except ValueError:
+                print >> sys.stderr, "\nError parsing header.  Problem with info tag:", id[0]
+                print >> sys.stderr, "Number of fields associated with this tag is not an integer or '.'"
+                exit(1)
 
             self.infoHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
 
@@ -253,7 +255,7 @@ class vcf:
           fields = self.infoTags[tag].split(",")
           if len(fields) != numberValues:
             text = "Unexpected number of entries"
-            self.generalError(text, "information tag:", tag)
+            self.generalError(text, "information tag", tag)
 
           for i in range(infoNumber):
             try: result.append(fields[i])

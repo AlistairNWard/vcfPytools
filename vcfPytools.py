@@ -4,14 +4,14 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.14"
+__version__ = "version 0.15"
 __date__ = "january 2011"
 
 def main():
-
   usage = "Usage: vcfPytools.py [tool] [options]\n\n" + \
           "Available tools:\n" + \
           "  dbsnp:\n\tAnnotate the vcf file with dbsnp membership (requires dbsnp in vcf format).\n" + \
+          "  extract:\n\tExtract vcf records from a region.\n" + \
           "  filter:\n\tFilter the vcf file.\n" + \
           "  intersect:\n\tGenerate the intersection of two vcf files.\n" + \
           "  merge:\n\tMerge a list of vcf files.\n" + \
@@ -33,10 +33,13 @@ def main():
   if tool == "dbsnp":
     import dbsnp
     success = dbsnp.main()
-  if tool == "filter":
+  elif tool == "extract":
+    import extract
+    success = extract.main()
+  elif tool == "filter":
     import filter
     success = filter.main()
-  if tool == "intersect":
+  elif tool == "intersect":
     import intersect
     success = intersect.main()
   elif tool == "merge":

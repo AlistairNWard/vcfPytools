@@ -51,9 +51,7 @@ def main():
 # the amount of information requiring storage in memory.
   tempFiles = {}
   tempPositionsFiles = {}
-  success = 0
-  while success == 0:
-    success = v.getRecord()
+  while v.getRecord() == 0:
     tempPositionsFile = "positions." + v.referenceSequence + ".vcfPytools.tmp"
     tempFile = "records." + v.referenceSequence + ".vcfPytools.tmp"
     if tempFile not in tempFiles:

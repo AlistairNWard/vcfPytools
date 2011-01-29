@@ -107,10 +107,8 @@ def main():
 # Parse the vcf file and check if any of the filters are failed.  If
 # so, build up a string of failed filters.
   writeHeader(outputFile, v, options.removeGeno)
-  success = 0
-  while success == 0:
+  while v.getRecord() == 0:
     filterString = ""
-    success = v.getRecord()
 
 # Check for quality filtering.
     if options.quality != None:

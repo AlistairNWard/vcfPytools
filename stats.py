@@ -64,7 +64,11 @@ class statistics:
       "novelTs": 0, \
       "novelTv": 0, \
       "knownTs": 0, \
-      "knownTv": 0}
+      "knownTv": 0, \
+      "sumRNovelTs": 0, \
+      "sumRNovelTv": 0, \
+      "sumRKnownTs": 0, \
+      "sumRKnownTv": 0}
 
     self.inDbsnp = True
     if rsid == ".": self.inDbsnp = False
@@ -84,7 +88,11 @@ class statistics:
       "novelTs": novelTs, \
       "novelTv": novelTv, \
       "knownTs": knownTs, \
-      "knownTv": knownTv}
+      "knownTv": knownTv, \
+      "sumRNovelTs": 0, \
+      "sumRNovelTv": 0, \
+      "sumRKnownTs": 0, \
+      "sumRKnownTv": 0}
 
 # Calculate general statistics.
   def printGeneralStats(self, file):
@@ -273,55 +281,95 @@ class statistics:
 
     print >> file
 
-# Print out the distributions.
-  def printDistributions(self, file, plot):
+# Work backwards through the distributions and add up the number
+# of each value (e.g. novel transitions) with a value greater
+# than or equal to the present value.  When printing out the
+# distributions, the number of SNPs with a value less than or
+# equal to the listed value will be calculate and printed out.
+  def expandDistributions(self):
 
 # Build a sorted list of values for each tag.
-    tagList = {}
+    self.tagList = {}
     for tag, value in self.distributions:
-      tagList.setdefault(tag, []).append(value)
+      self.tagList.setdefault(tag, []).append(value)
 
-    for tag in tagList:
-      print >> file, "Statistics for information field: ", tag
-      values = tagList[tag]
-      values.sort()
-      if plot: tempOutput = open("Rdata", 'w')
+# Calculate the values.
+    for tag in self.tagList:
+      values = self.tagList[tag]
+      values.sort(reverse = True)
 
+      sumRNovelTs = 0
+      sumRNovelTv = 0
+      sumRKnownTs = 0
+      sumRKnownTv = 0
       for value in values:
+        sumRNovelTs = sumRNovelTs + self.distributions[ (tag, value) ]["novelTs"]
+        sumRNovelTv = sumRNovelTv + self.distributions[ (tag, value) ]["novelTv"]
+        sumRKnownTs = sumRKnownTs + self.distributions[ (tag, value) ]["knownTs"]
+        sumRKnownTv = sumRKnownTv + self.distributions[ (tag, value) ]["knownTv"]
+        self.distributions[ (tag, value) ]["sumRNovelTs"] = sumRNovelTs
+        self.distributions[ (tag, value) ]["sumRNovelTv"] = sumRNovelTv
+        self.distributions[ (tag, value) ]["sumRKnownTs"] = sumRKnownTs
+        self.distributions[ (tag, value) ]["sumRKnownTv"] = sumRKnownTv
+
+# Print out the distributions.
+  def printDistributions(self, output, file, plot):
+    for tag in self.tagList:
+      print >> file, "Statistics for information field: ", tag
+      values = self.tagList[tag]
+      values.sort()
+      if plot: 
+        RFile = output.rsplit(".",1)[0] + "." + tag + ".Rdata"
+        tempOutput = open(RFile, 'w')
+
+      sumNovelTs = 0
+      sumNovelTv = 0
+      sumKnownTs = 0
+      sumKnownTv = 0
+      for value in values:
+        sumNovelTs = sumNovelTs + self.distributions[ (tag, value) ]["novelTs"]
+        sumNovelTv = sumNovelTv + self.distributions[ (tag, value) ]["novelTv"]
+        sumKnownTs = sumKnownTs + self.distributions[ (tag, value) ]["knownTs"]
+        sumKnownTv = sumKnownTv + self.distributions[ (tag, value) ]["knownTv"]
         print >> file, value, \
                        self.distributions[ (tag,value) ]["novelTs"], \
                        self.distributions[ (tag,value) ]["novelTv"], \
                        self.distributions[ (tag,value) ]["knownTs"], \
-                       self.distributions[ (tag,value) ]["knownTv"]
+                       self.distributions[ (tag,value) ]["knownTv"], \
+                       sumNovelTs, \
+                       sumNovelTv, \
+                       sumKnownTs, \
+                       sumKnownTv, \
+                       self.distributions[ (tag,value) ]["sumRNovelTs"], \
+                       self.distributions[ (tag,value) ]["sumRNovelTv"], \
+                       self.distributions[ (tag,value) ]["sumRKnownTs"], \
+                       self.distributions[ (tag,value) ]["sumRKnownTv"]
 
         if plot:
           print >> tempOutput, value, \
-                               self.distributions[ (tag,value) ]["novelTs"], \
-                               self.distributions[ (tag,value) ]["novelTv"], \
-                               self.distributions[ (tag,value) ]["knownTs"], \
-                               self.distributions[ (tag,value) ]["knownTv"]
+                       self.distributions[ (tag,value) ]["novelTs"], \
+                       self.distributions[ (tag,value) ]["novelTv"], \
+                       self.distributions[ (tag,value) ]["knownTs"], \
+                       self.distributions[ (tag,value) ]["knownTv"], \
+                       sumNovelTs, \
+                       sumNovelTv, \
+                       sumKnownTs, \
+                       sumKnownTv, \
+                       self.distributions[ (tag,value) ]["sumRNovelTs"], \
+                       self.distributions[ (tag,value) ]["sumRNovelTv"], \
+                       self.distributions[ (tag,value) ]["sumRKnownTs"], \
+                       self.distributions[ (tag,value) ]["sumRKnownTv"]
       print >> file
 
       if plot:
-        pdfFile = "dist" + tag
-        pdfRoot = pdfFile.split(".",2)
-        pdfFile = pdfRoot[0] + ".pdf"
-        if tag == "quality":
-          RScript = createRScript(pdfFile, tag, 3)
-        elif tag == "DP":
-          RScript = createRScript(pdfFile, tag, 1)
-        elif tag == "AB":
-          RScript = createRScript(pdfFile, tag, 2)
-        elif tag == "SB":
-          RScript = createRScript(pdfFile, tag, 2)
-        else:
-          RScript = createRScript(pdfFile, tag, 0)
-        success = subprocess.call("R CMD BATCH vcfPytoolsRScript.R", shell=True)
-        if plotRemove:
-          os.remove("Rdata")
-          os.remove(RScript)
-          RScript = RScript + "out"
-          os.remove(RScript)
+        tempOutput.close()
+        RScript = createRScript(RFile, tag)
+        command = "R CMD BATCH " + RScript
+        success = subprocess.call(command, shell=True)
+        RScript = RScript + "out"
+        os.remove(RScript)
+       
+    file.close()
 
 if __name__ == "__main__":
   main()
@@ -392,9 +440,7 @@ def main():
       v.checkInfoFields(tag)
 
 # Read through all the entries.
-  success = 0
-  while success == 0:
-    success = v.getRecord()
+  while v.getRecord() == 0:
     getStats = False if (options.passed and v.filters != "PASS") else True
     stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.multiAllelic, v.filters)
 
@@ -427,7 +473,8 @@ def main():
 # Print out the stats.
   stats.printGeneralStats(outputFile)
   if options.distributions or options.quality:
-    stats.printDistributions(outputFile, options.plotDist)
+    stats.expandDistributions()
+    stats.printDistributions(options.vcfFile, outputFile, options.plotDist)
 
 # Terminate the program cleanly.
   return 0
