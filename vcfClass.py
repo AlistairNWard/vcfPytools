@@ -59,7 +59,7 @@ class vcf:
             description = type[1].split("Description=\"",1)
 
 # Check that the number of fields associated with the tag is as integer.
-            if number == ".": number = "variable"
+            if number[0] == ".": number = "variable"
             else:
               try: number = int(number[0])
               except ValueError:
@@ -84,11 +84,13 @@ class vcf:
             description = type[1].split("\"",1)
 
 # Check that the number of fields associated with the tag is as integer.
-            try: number = int(number[0])
-            except ValueError:
-              print >> sys.stderr, "\nError parsing header.  Problem with format tag:", id[0]
-              print >> sys.stderr, "Number of fields associated with this tag is not an integer."
-              exit(1)
+            if number[0] == ".": number = "variable"
+            else:
+              try: number = int(number[0])
+              except ValueError:
+                print >> sys.stderr, "\nError parsing header.  Problem with format tag:", id[0]
+                print >> sys.stderr, "Number of fields associated with this tag is not an integer."
+                exit(1)
 
             self.formatHeaderTags[id[0]] = number, type[0], description[1].rstrip("\">")
           else: self.headerText = self.headerText + line + "\n"

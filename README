@@ -9,6 +9,7 @@ Available tools:
 ------------------------------------------------------------------------
 
 	dbsnp - annotate a vcf file with dbSNP rsid values.
+	extract - extract reads from a specified region.
 	filter - filter the vcf file.
 	intersect - generate the intersection of two vcf files.
 	merge - merge any number of vcf files
@@ -51,16 +52,36 @@ also be in vcf v4.0 format.
   Only dbSNP entries with VC=SNP are included.
 
 ------------------------------------------------------------------------
+extract:
+------------------------------------------------------------------------
+
+python vcfPytools.py extract [options]
+
+options:
+	--in (-i):			input vcf file
+	--out (-o):			output vcf file
+	--reference-sequence (-s):	extract records from reference sequence
+	--region (-r):			extract records from region
+
+  Option --ref (-s) outputs all records from the specified reference
+sequence from the input vcf file into the output vcf file.
+
+  Option --region (-r) outputs all records from the specified region
+from the input vcf file into the output vcf file.  The format of the
+region is ref:start..end, where the start and end coordinates are 1-based.
+
+------------------------------------------------------------------------
 filter:
 ------------------------------------------------------------------------
 
 python vcfPytools.py filter [options]
 
 options:
-	--in (-i):	input vcf file
-	--out (-o):	output vcf file
-	--quality (-q):	filter on defined quality score
-	--info (-n):	filter on entries in the info string
+	--in (-i):			input vcf file
+	--out (-o):			output vcf file
+	--quality (-q):			filter on defined quality score
+	--info (-n):			filter on entries in the info string
+	--remove-genotypes (-r):	strip genotype information from file
 
   Option --quality (-q) will check the variant quality for each record
 and if it is below the defined value, the filter field will be
@@ -81,13 +102,17 @@ python vcfPytools.py intersect [options]
 
 options:
 	--in (-i):		input vcf files
+        --bed (-b):		input bed file
 	--out (-o):		output vcf file
         --priority-file (-p):	output record from this file
 
-  Two input vcf files are required as input and the intersection of
+  Two input files are required as input and the intersection of
 these two files is generated and sent to the output.  These files must
 be sorted by genomic coordinate to function correctly, although the
 reference sequence order is no important.
+
+  The intersection can be calculated on two vcf files or a vcf and a bed
+file.
 
   If the --priority-file (-p) argument is set (this must be equal to one
 of the input vcf files), then the record written to the output will come
@@ -133,13 +158,15 @@ options:
         --distributions (-d):	calculate defined distributions
 	--filter-pass (-f):	only consider records that PASS
 	--plot (-p):		plot distributions
+	--quality (-q)		calculate distribution of quality values
 
   Generate statistics from the vcf file.  If only the input file is
 specified, the stats tool calculates statistics relating to the ts/tv
 ratio and dbSNP membership for all reference sequences, filters and
 totals.  The dbSNP percentage is only calculated if the vcf file is
 annotated with dbSNP rsid values.  The dbsnp tool can be used to perform
-this annotation.
+this annotation.  The outputted distributions keep track of dbSNP
+membership and transitions/transversions.
 
   The --distributions (-d) argument allows distributions to be created
 for the specified info field.  As many distributions as there are info
@@ -149,6 +176,9 @@ for all of the fields in the info string.
   Including the --filter-pass (-f) ensures that distributions are only
 built using records that are listed as "PASS", thus omitting all
 filtered records.
+
+  The --plot (-p) argument will use R to generate plots for the requested
+distributions.
 
 ------------------------------------------------------------------------
 union:
