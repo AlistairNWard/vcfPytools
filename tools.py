@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os.path
 import sys
 
 # Determine whether to output to a file or stdout.
@@ -9,6 +10,7 @@ def setOutput(output):
     outputFile = sys.stdout
     writeOut = False
   else:
+    output = os.path.abspath(output)
     outputFile = open(output, 'w')
     writeOut = True
 

@@ -7,6 +7,9 @@ import optparse
 import vcfClass
 from vcfClass import *
 
+import tools
+from tools import *
+
 if __name__ == "__main__":
   main()
 
@@ -18,6 +21,9 @@ def main():
   parser.add_option("-i", "--in",
                     action="store", type="string",
                     dest="vcfFile", help="input vcf file")
+  parser.add_option("-o", "--out",
+                    action="store", type="string",
+                    dest="output", help="output vcf file")
 
   (options, args) = parser.parse_args()
 
@@ -26,6 +32,8 @@ def main():
     parser.print_help()
     print >> sys.stderr, "\nAt least one vcf file (--in, -i) is required for performing intersection."
     exit(1)
+
+  outputFile, writeOut = setOutput(options.output)
 
   v = vcf() # Define vcf object.
 
@@ -36,7 +44,7 @@ def main():
   v.parseHeader(options.vcfFile, False)
 
 # Perform testing.
-  while v.getRecord()::
+  while v.getRecord():
     continue
 
 # Close the vcf files.

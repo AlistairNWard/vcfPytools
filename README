@@ -12,7 +12,8 @@ Available tools:
 	extract - extract reads from a specified region.
 	filter - filter the vcf file.
 	intersect - generate the intersection of two vcf files.
-	merge - merge any number of vcf files
+	merge - merge any number of vcf files.
+	multi - calculate Wenn diagram sections from vcf files.
 	sort - sort a vcf file
 	stats - generate statistics on defined parameters.
 	union - generate the union of two vcf files.
@@ -147,6 +148,36 @@ options:
 achieved by appending all the files to a single output and so if the
 input files contain records for the same reference sequence, the
 resulting output file will not be sorted.
+
+-------------------------------------------------------------------------------
+multi:
+-------------------------------------------------------------------------------
+
+python vcfPytools.py multi [options]
+
+options:
+	--in (-i):	list of input files and identifiers
+
+  Given a list of input files and identifiers, multi will generate and execute
+command lines to calculate the intersections and unique fractions of a set of
+vcf files.  The identifiers are used to construct the output file names. For
+example, the command line:
+
+  python vcfPytools.py multi --in fileA.vcf A --in fileB.vcf B --in fileC.vcf C
+
+would generate a set of vcf files representing all of the elements of a Wenn
+diagram.  The files that would result (the names being constructed from the
+identifiers, A, B and C) would be:
+
+  variantsFrom.A.B.C.vcf:	interection of all three files
+  variantsFrom.A.B.vcf:		those records in A and B, but not C
+  variantsFrom.B.C.vcf:		those records in B and C, but not A
+  variantsFrom.A.C.vcf:		those records in A and C, but not B
+  variantsFrom.A.vcf:		those records unique to A
+  variantsFrom.B.vcf:		those records unique to B
+  variantsFrom.C.vcf:		those records unique to C
+
+  The number of input files must be at least two.
 
 -------------------------------------------------------------------------------
 sort:

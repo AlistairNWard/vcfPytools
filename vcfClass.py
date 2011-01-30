@@ -97,13 +97,14 @@ class vcf:
 # Strip the end of line character from the last infoFields entry.
     infoFields = self.headerLine.split("\t")
     if len(infoFields) > 8:
-      if len(infoFields) - 9 == 1 and writeOut: print >> sys.stderr, numberInfoFields - 9, " sample present in vcf file: ", filename
-      elif writeOut: print >> sys.stderr, numberInfoFields - 9, " samples present in vcf file: ", filename
+      if len(infoFields) - 9 == 1 and writeOut: print >> sys.stderr, len(infoFields) - 9, " sample present in vcf file: ", filename
+      elif writeOut: print >> sys.stderr, len(infoFields) - 9, " samples present in vcf file: ", filename
       self.samplesList = infoFields[9:]
       self.genotypes = True
     elif len(infoFields) == 8:
       if writeOut: print >> sys.stderr, "No samples present in the header.  No genotype information available."
     else:
+      print self.headerLine, len(infoFields)
       print >> sys.stderr, "Not all vcf standard fields are available."
       exit(1)
 

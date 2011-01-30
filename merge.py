@@ -25,14 +25,13 @@ def main():
   (options, args) = parser.parse_args()
 
 # Check that multiple vcf files are given.
-  outputFile, writeOut = setOutput(options.output) # tools.py
+  if not options.vcfFiles or len(options.vcfFiles) <= 0:
+    print >> sys.stderr, "Multiple vcf files must be included."
+    exit(1)
 
 # Open the output file for writing, or set the output file to
 # stdout if an output file wasn't defined.
-  if options.output == None:
-    outputFile = sys.stdout
-  else:
-    outputFile = open(options.output,'w')
+  outputFile, writeOut = setOutput(options.output) # tools.py
 
   for index, vcfFile in enumerate(options.vcfFiles):
     v = vcf() # Define vcf object
