@@ -50,7 +50,7 @@ def main():
 
 # Check that either a reference sequence or region is specified,
 # but not both if not dealing with info fields.
-  if not options.infoKeep and not options.infoDiscard:
+  if not options.infoKeep and not options.infoDiscard and not options.passFilter:
     if not options.referenceSequence and not options.region:
       parser.print_help()
       print >> sys.stderr, "\nA region (--region, -r) or reference sequence (--reference-sequence, -s) must be supplied"
@@ -114,7 +114,7 @@ def main():
     if options.infoDiscard and writeRecord:
       for tag in options.infoDiscard:
         if v.infoTags.has_key(tag): writeRecord = False
-    if options.passFilter and v.filter != "PASS" and writeRecord: writerecord = False
+    if options.passFilter and v.filters != "PASS" and writeRecord: writeRecord = False
 
     if writeRecord: outputFile.write(v.record)
 
