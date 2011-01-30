@@ -90,7 +90,7 @@ def main():
 # Read through the sorted positions file and the file containing
 # only the records for that reference sequence and write the
 # records to the output file in order.
-  for referenceSequence in v.referenceSequencesList:
+  for referenceSequence in v.referenceSequenceList:
     v1 = vcf()
     positionsFile = "positions." + referenceSequence + ".vcfPytools.tmp"
     recordsFile = "records." + referenceSequence + ".vcfPytools.tmp"

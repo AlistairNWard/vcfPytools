@@ -55,7 +55,7 @@ def annotateVcf(v, d, outputFile):
     else:
       if v.referenceSequence == currentReferenceSequence: success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile)
       elif d.referenceSequence == currentReferenceSequence: success2 = d.parseVcf(v.referenceSequence, v.position, False, None)
-      currentReferenceSequence == v.referenceSequence
+      currentReferenceSequence = v.referenceSequence
 
 def main():
 
@@ -109,6 +109,10 @@ def main():
 
 # Annotate the vcf file.
   annotateVcf(v, d, outputFile)
+
+# Check that the input files had the same list of reference sequences.
+# If not, it is possible that there were some problems.
+  checkReferenceSequenceLists(v.referenceSequenceList, d.referenceSequenceList) # tools.py
 
 # Close the vcf files.
   v.closeVcf(options.vcfFile)

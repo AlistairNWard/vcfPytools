@@ -47,7 +47,7 @@ def intersectVcf(v1, v2, priority, outputFile):
     else:
       if v1.referenceSequence == currentReferenceSequence: success1 = v1.parseVcf(v2.referenceSequence, v2.position, False, None)
       elif v2.referenceSequence == currentReferenceSequence: success2 = v2.parseVcf(v1.referenceSequence, v1.position, False, None)
-      currentReferenceSequence == v1.referenceSequence
+      currentReferenceSequence = v1.referenceSequence
 
 # Write out a vcf record.
 def writeVcfRecord(priority, v1, v2, outputFile):
@@ -135,6 +135,10 @@ def main():
 # Intersect the vcf file with the bed file.
     intersectVcfBed(v, b, outputFile)
 
+# Check that the input files had the same list of reference sequences.
+# If not, it is possible that there were some problems.
+    checkReferenceSequenceLists(v.referenceSequenceList, b.referenceSequenceList) # tools.py
+
 # Close the files.
     v.closeVcf(options.vcfFiles[0])
     b.closeBed(options.bedFile)
@@ -162,6 +166,10 @@ def main():
 
 # Intersect the two vcf files.
     intersectVcf(v1, v2, priority, outputFile)
+
+# Check that the input files had the same list of reference sequences.
+# If not, it is possible that there were some problems.
+    checkReferenceSequenceLists(v1.referenceSequenceList, v2.referenceSequenceList) # tools.py
 
 # Close the vcf files.
     v1.closeVcf(options.vcfFiles[0])

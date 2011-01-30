@@ -6,6 +6,8 @@ import sys
 class bed:
   def __init__(self):
     self.numberTargets = 0
+    self.referenceSequences = {}
+    self.referenceSequenceList = []
 
   def openBed(self, filename):
     if filename == "stdin": self.filehandle = sys.stdin
@@ -29,6 +31,15 @@ class bed:
 # must be that in the bed file plus one.
     entries = self.record.rstrip("\n").split("\t")
     self.referenceSequence = entries[0]
+
+# Add the reference sequence to the dictionary.  If it didn't previously
+# exist append the reference sequence to the end of the list as well. 
+# This ensures that the order in which the reference sequences appeared
+# in the header can be preserved.
+    if self.referenceSequence not in self.referenceSequences:
+      self.referenceSequences[self.referenceSequence] = True
+      self.referenceSequenceList.append(self.referenceSequence)
+
     try: self.start = int(entries[1]) + 1
     except:
       text = "start position need is not an integer"

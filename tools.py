@@ -4,7 +4,6 @@ import os.path
 import sys
 
 # Determine whether to output to a file or stdout.
-
 def setOutput(output):
   if output == None:
     outputFile = sys.stdout
@@ -17,7 +16,6 @@ def setOutput(output):
   return outputFile, writeOut
 
 # Write the header to file.
-
 def writeHeader (outputFile, v, removeGenotypes):
   outputFile.write( v.headerText ) if v.headerText != "" else None
   outputFile.write( v.headerInfoText ) if v.headerInfoText != "" else None
@@ -31,3 +29,16 @@ def writeHeader (outputFile, v, removeGenotypes):
     outputFile.write( newHeaderTitles )
   else:
     outputFile.write( v.headerTitles )
+
+# Check that the two reference sequence lists are identical.
+# If there are a different number or order, the results may
+# not be as expected.
+def checkReferenceSequenceLists(list1, list2):
+  if len(list1) != len(list2):
+    print >> sys.stderr, "WARNING: Input files contain a different number of reference sequences."
+    print >> sys.stderr, "Results may not be as expected."
+    print >> sys.stderr, "Ensure that input files have the same reference sequences in the same order."
+  elif list1 != list2:
+    print >> sys.stderr, "WARNING: Input files contain different or differently ordered reference sequences."
+    print >> sys.stderr, "Results may not be as expected."
+    print >> sys.stderr, "Ensure that input files have the same reference sequences in the same order."

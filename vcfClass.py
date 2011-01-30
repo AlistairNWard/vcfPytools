@@ -15,7 +15,7 @@ class vcf:
     self.genotypes = False
     self.infoField = {}
     self.referenceSequences = {}
-    self.referenceSequencesList = []
+    self.referenceSequenceList = []
     self.referenceSequence = ""
     self.position = -1
     self.samplesList = []
@@ -161,7 +161,7 @@ class vcf:
 # in the header can be preserved.
     if self.referenceSequence not in self.referenceSequences:
       self.referenceSequences[self.referenceSequence] = True
-      self.referenceSequencesList.append(self.referenceSequence)
+      self.referenceSequenceList.append(self.referenceSequence)
 
 # Check for multiple alternate alleles.
     checkAlt = self.alt.split(",")

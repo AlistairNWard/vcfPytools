@@ -37,7 +37,7 @@ def uniqueVcf(v1, v2, outputFile):
     else:
       if v1.referenceSequence == currentReferenceSequence: success1 = v1.parseVcf(v2.referenceSequence, v2.position, True, outputFile)
       elif v2.referenceSequence == currentReferenceSequence: success2 = v2.parseVcf(v1.referenceSequence, v1.position, False, None)
-      currentReferenceSequence == v1.referenceSequence
+      currentReferenceSequence = v1.referenceSequence
 
 if __name__ == "__main__":
   main()
@@ -91,6 +91,10 @@ def main():
 
 # Calculate the unique fraction.
   uniqueVcf(v1, v2, outputFile)
+
+# Check that the input files had the same list of reference sequences.
+# If not, it is possible that there were some problems.
+  checkReferenceSequenceLists(v1.referenceSequenceList, v2.referenceSequenceList) # tools.py
 
 # Close the vcf files.
   v1.closeVcf(options.vcfFiles[0])
