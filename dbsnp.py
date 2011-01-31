@@ -50,11 +50,11 @@ def annotateVcf(v, d, outputFile):
         success1 = v.getRecord()
         success2 = d.getRecord()
       elif d.position > v.position:
-        success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile)
-      elif v.position > d.position: success2 = d.parseVcf(v.referenceSequence, v.position, False, None)
+        success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile, False)
+      elif v.position > d.position: success2 = d.parseVcf(v.referenceSequence, v.position, False, None, False)
     else:
-      if v.referenceSequence == currentReferenceSequence: success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile)
-      elif d.referenceSequence == currentReferenceSequence: success2 = d.parseVcf(v.referenceSequence, v.position, False, None)
+      if v.referenceSequence == currentReferenceSequence: success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile, False)
+      elif d.referenceSequence == currentReferenceSequence: success2 = d.parseVcf(v.referenceSequence, v.position, False, None, False)
       currentReferenceSequence = v.referenceSequence
 
 def main():

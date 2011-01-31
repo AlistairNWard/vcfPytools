@@ -62,7 +62,7 @@ def main():
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
-  parser.add_option("-p", "--priority-file",
+  parser.add_option("-f", "--priority-file",
                     action="store", type="string",
                     dest="priorityFile", help="output record from this file")
 

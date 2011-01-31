@@ -336,7 +336,7 @@ class vcf:
       record = record + "\t" + self.genotypeFormatString
       for genotype in self.genotypes: record = record + "\t" + genotype
 
-    record = record + "\n"
+    record += "\n"
 
     return record
 

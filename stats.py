@@ -319,8 +319,11 @@ class statistics:
       values = self.tagList[tag]
       values.sort()
       if plot: 
-        RFile = output.rsplit(".",1)[0] + "." + tag + ".Rdata"
+        RFile = (os.getcwd() + "/" + output.rsplit("/",1)[1]).rsplit(".",1)[0] + "." + tag + ".Rdata"
         tempOutput = open(RFile, 'w')
+        plotEveryN = int( round( (len(self.tagList[tag]) / 1000), 0) )
+        if plotEveryN == 0: plotEveryN = 1
+        N = 1
 
       sumNovelTs = 0
       sumNovelTv = 0
@@ -346,7 +349,7 @@ class statistics:
                        self.distributions[ (tag,value) ]["sumRKnownTv"]
 
         if plot:
-          print >> tempOutput, value, \
+          if N == plotEveryN: print >> tempOutput, value, \
                        self.distributions[ (tag,value) ]["novelTs"], \
                        self.distributions[ (tag,value) ]["novelTv"], \
                        self.distributions[ (tag,value) ]["knownTs"], \
@@ -359,6 +362,8 @@ class statistics:
                        self.distributions[ (tag,value) ]["sumRNovelTv"], \
                        self.distributions[ (tag,value) ]["sumRKnownTs"], \
                        self.distributions[ (tag,value) ]["sumRKnownTv"]
+          N += 1
+          if N > plotEveryN: N = 1
       print >> file
 
       if plot:

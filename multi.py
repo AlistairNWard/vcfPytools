@@ -32,6 +32,7 @@ def main():
 # are vcf files.  This list will be used to determine the
 # permutations of intersect and unique later in the program.
   rootPermutations = []
+  outputFilenames = {}
   for i in range(0, len(options.vcfFiles)): rootPermutations.append(0)
 
 # Calculate the different permutations and create scripts.
@@ -85,7 +86,30 @@ def main():
           print >> sys.stderr, command
           exit(1)
 
+        outputFilenames.setdefault(len(options.vcfFiles) - i, []).append(outputFile)
+
     rootPermutations[i] = 1
+
+# Generate and execute commands to find the unions of each set of files.
+# This means that there will exist a vcf file for each segment of the
+# Wenn diagram as well as a vcf file including the union of all records
+# present in two files etc.
+  for key, value in outputFilenames.iteritems():
+    unionCommand = "python " + sys.argv[0] + " union "
+    fileID = 1
+    for filename in value:
+      if fileID < 3: unionCommand += "--in " + filename + ".vcf "
+      else: unionCommand += " | python " + sys.argv[0] + " union --in stdin --in " + filename + ".vcf "
+      fileID += 1
+
+    outputFile = "variantsFrom" + str(key) + "only.vcf"
+    unionCommand += "--out " + outputFile
+    if key != len(options.vcfFiles):
+      success = subprocess.call(unionCommand, shell=True)
+      if success != 0:
+        print >> sys.stderr, "\nThe following command failed:\n"
+        print >> sys.stderr, command
+        exit(1)
 
 # Terminate the program cleanly.
   return 0

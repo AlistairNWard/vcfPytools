@@ -103,9 +103,14 @@ and if it is below the defined value, the filter field will be
 populated with the filter entry Q[value].
 
   Any value in the info string can be used for filtering by using the
---info (-n) command line option.  This option takes two values. For 
-example, --info DP 10 would filter out all variant with a depth (DP)
-less than 10 and the filter field would be populated with DP10.
+--info (-n) command line option.  This option takes three values: the
+info string tag, the cutoff value and whether to filter out those records
+with less than (lt) or greater than (gt) this value.  For example:
+
+  --info DP 10 lt 
+
+  would filter out all varianta with a depth (DP) less than 10 and the 
+filter field would be populated with DP10.
 
   This command line argument can be defined as many times as required.
 
@@ -119,7 +124,7 @@ options:
 	--in (-i):		input vcf files
         --bed (-b):		input bed file
 	--out (-o):		output vcf file
-        --priority-file (-p):	output record from this file
+        --priority-file (-f):	output record from this file
 
   Two input files are required as input and the intersection of
 these two files is generated and sent to the output.  These files must
@@ -129,7 +134,7 @@ reference sequence order is no important.
   The intersection can be calculated on two vcf files or a vcf and a bed
 file.
 
-  If the --priority-file (-p) argument is set (this must be equal to one
+  If the --priority-file (-f) argument is set (this must be equal to one
 of the input vcf files), then the record written to the output will come
 from this file.  If this argument is not set, the record with the
 highest quality is written out.
@@ -232,9 +237,10 @@ union:
 python vcfPytools.py union [options]
 
 options:
-	--in (-i):	input vcf files
-	--out (-o):	output vcf file
-        --priority-file (-p):	output record from this file
+	--in (-i):		input vcf files
+	--out (-o):		output vcf file
+        --priority-file (-f):	output record from this file
+	--pass-filter (-p):	only output records that pass filters
 
   Generate the union of the two input vcf files.  The comments included
 in the explanation of the intersection tool are applicable to this tool.
@@ -248,6 +254,7 @@ python vcfPytools.py unique [options]
 options:
 	--in (-i):	input vcf files
 	--out (-o):	output vcf file
+	--pass-filter (-p):	only output records that pass filters
 
   Output the records that are unique to the first inputted vcf file
 when compared with another vcf file.

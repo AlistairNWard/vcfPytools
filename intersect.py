@@ -52,7 +52,7 @@ def intersectVcf(v1, v2, priority, outputFile):
 # Write out a vcf record.
 def writeVcfRecord(priority, v1, v2, outputFile):
   if priority == 0:
-    if v1.quality >= v2.quality: outputFile.write(v1.record)
+    if int(v1.quality) >= int(v2.quality): outputFile.write(v1.record)
     else: outputFile.write(v2.record)
   elif priority == 1: outputFile.write(v1.record)
   elif priority == 2: outputFile.write(v2.record)
@@ -75,7 +75,7 @@ def intersectVcfBed(v, b, outputFile):
       if v.position < b.start: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
       elif v.position > b.end: successb = b.parseBed(v.referenceSequence, v.position)
       else:
-        outputFile.write(v.record)
+        if not passFilter or (passFilter and v.filters == "PASS"): outputFile.write(v.record)
         successv = v.getRecord()
     else:
       if v.referenceSequence == currentReferenceSequence: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
@@ -96,7 +96,7 @@ def main():
   parser.add_option("-o", "--out",
                     action="store", type="string",
                     dest="output", help="output vcf file")
-  parser.add_option("-p", "--priority",
+  parser.add_option("-f", "--priority-file",
                     action="store", type="string",
                     dest="priorityFile", help="output records from this vcf file")
 

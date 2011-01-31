@@ -21,7 +21,7 @@ def writeHeader (outputFile, v, removeGenotypes):
   outputFile.write( v.headerInfoText ) if v.headerInfoText != "" else None
   outputFile.write( v.headerFormatText ) if v.headerFormatText != "" else None
   if removeGenotypes:
-    line = v.headerTitles.split("\t")
+    line = v.headerTitles.rstrip("\n").split("\t")
     newHeaderTitles = line[0]
     for i in range(1,8):
       newHeaderTitles = newHeaderTitles + "\t" + line[i]
@@ -34,11 +34,14 @@ def writeHeader (outputFile, v, removeGenotypes):
 # If there are a different number or order, the results may
 # not be as expected.
 def checkReferenceSequenceLists(list1, list2):
+  errorMessage = False
   if len(list1) != len(list2):
     print >> sys.stderr, "WARNING: Input files contain a different number of reference sequences."
-    print >> sys.stderr, "Results may not be as expected."
-    print >> sys.stderr, "Ensure that input files have the same reference sequences in the same order."
+    errorMessage = True
   elif list1 != list2:
     print >> sys.stderr, "WARNING: Input files contain different or differently ordered reference sequences."
+    errorMessage = True
+  if errorMessage:
     print >> sys.stderr, "Results may not be as expected."
     print >> sys.stderr, "Ensure that input files have the same reference sequences in the same order."
+    print >> sys.stderr, "Reference sequence lists observed were:\n\t", list1, "\n\t", list2
