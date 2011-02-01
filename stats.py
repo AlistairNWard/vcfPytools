@@ -319,7 +319,8 @@ class statistics:
       values = self.tagList[tag]
       values.sort()
       if plot: 
-        RFile = (os.getcwd() + "/" + output.rsplit("/",1)[1]).rsplit(".",1)[0] + "." + tag + ".Rdata"
+        if output.find("/") != -1: RFile = (os.getcwd() + "/" + output.rsplit("/",1)[1]).rsplit(".",1)[0] + "." + tag + ".Rdata"
+        else: RFile = (os.getcwd() + "/" + output).rsplit(".",1)[0] + "." + tag + ".Rdata"
         tempOutput = open(RFile, 'w')
         plotEveryN = int( round( (len(self.tagList[tag]) / 1000), 0) )
         if plotEveryN == 0: plotEveryN = 1

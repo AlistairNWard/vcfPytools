@@ -52,7 +52,7 @@ def intersectVcf(v1, v2, priority, outputFile):
 # Write out a vcf record.
 def writeVcfRecord(priority, v1, v2, outputFile):
   if priority == 0:
-    if int(v1.quality) >= int(v2.quality): outputFile.write(v1.record)
+    if float(v1.quality) >= float(v2.quality): outputFile.write(v1.record)
     else: outputFile.write(v2.record)
   elif priority == 1: outputFile.write(v1.record)
   elif priority == 2: outputFile.write(v2.record)
@@ -75,7 +75,7 @@ def intersectVcfBed(v, b, outputFile):
       if v.position < b.start: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
       elif v.position > b.end: successb = b.parseBed(v.referenceSequence, v.position)
       else:
-        if not passFilter or (passFilter and v.filters == "PASS"): outputFile.write(v.record)
+        outputFile.write(v.record)
         successv = v.getRecord()
     else:
       if v.referenceSequence == currentReferenceSequence: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
@@ -161,7 +161,7 @@ def main():
       print >> sys.stderr, "vcf files contain different samples (or sample order)."
       exit(1)
     else:
-      if priority == 2: writeHeader(outputFile, v2, False) # tools.py
+      if (priority == 2 and v2.hasHeader) or not v1.hasHeader: writeHeader(outputFile, v2, False) # tools.py
       else: writeHeader(outputFile, v1, False) # tools.py
 
 # Intersect the two vcf files.

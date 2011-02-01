@@ -2,6 +2,8 @@
 
 import os.path
 import sys
+import vcfPytools
+from vcfPytools import __version__
 
 # Determine whether to output to a file or stdout.
 def setOutput(output):
@@ -17,6 +19,9 @@ def setOutput(output):
 
 # Write the header to file.
 def writeHeader (outputFile, v, removeGenotypes):
+  if not v.hasHeader: 
+    v.headerText = "##fileformat=VCFv4.0\n##source=vcfPytools " + __version__ + "\n"
+    v.headerTitles = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
   outputFile.write( v.headerText ) if v.headerText != "" else None
   outputFile.write( v.headerInfoText ) if v.headerInfoText != "" else None
   outputFile.write( v.headerFormatText ) if v.headerFormatText != "" else None

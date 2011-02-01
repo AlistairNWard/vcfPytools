@@ -102,7 +102,8 @@ def main():
     print >> sys.stderr, "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    writeHeader(outputFile, v1, False) # tools.py
+    if (priority == 2 and v2.hasHeader) or not v1.hasHeader: writeHeader(outputFile, v2, False) # tools.py
+    else: writeHeader(outputFile, v1, False) # tools.py
 
 # Calculate the union.
   unionVcf(v1, v2, priority, outputFile)

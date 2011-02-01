@@ -87,7 +87,8 @@ def main():
     print >> sys.stderr, "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    writeHeader(outputFile, v1, False) # tools.py
+    if v1.hasHeader: writeHeader(outputFile, v1, False) # tools.py
+    else: writeHeader(outputFile, v2, False) # tools.py
 
 # Calculate the unique fraction.
   uniqueVcf(v1, v2, outputFile)
