@@ -2,36 +2,57 @@
 
 import os.path
 import sys
+import re
 
 class vcf:
   def __init__(self):
+
+# Header info.
+    self.filename = ""
     self.hasHeader = True
     self.headerText = ""
-    self.headerInfoText = ""
-    self.headerFormatText = ""
     self.headerTitles = ""
+    #self.headerInfoText = ""
+    #self.headerFormatText = ""
+
+# Store the info and format tags as well as the lines that describe
+# them in a dictionary.
+    self.numberDataSets = 0 
+    self.includedDataSets = {}
     self.infoHeaderTags = {}
+    self.infoHeaderString = {}
     self.formatHeaderTags = {}
+    self.formatHeaderString = {}
+
+# Genotype information.
     self.genotypes = False
     self.infoField = {}
+
+# Reference sequence information.
     self.referenceSequences = {}
     self.referenceSequenceList = []
     self.referenceSequence = ""
+
+# Record information.
     self.position = -1
     self.samplesList = []
 
+# Determine which fields to process.
     self.processInfo = False
     self.processGenotypes = False
     self.dbsnpVcf = False
 
 # Open a vcf file.
   def openVcf(self, filename):
-    if filename == "stdin": self.filehandle = sys.stdin
+    if filename == "stdin":
+      self.filehandle = sys.stdin
+      self.filename = "stdin"
     else:
       try: self.filehandle = open(filename,"r")
       except IOError:
         print >> sys.stderr, "Failed to find file: ",filename
         exit(1)
+      self.filename = os.path.abspath(filename)
 
 # Parse the vcf header.
   def parseHeader(self, filename, writeOut):
@@ -43,6 +64,7 @@ class vcf:
     self.headerLine = self.filehandle.readline().rstrip("\n")
     if self.headerLine.startswith("##INFO"): success = self.headerInfo(writeOut, "info")
     elif self.headerLine.startswith("##FORMAT"): success = self.headerInfo(writeOut, "format")
+    elif self.headerLine.startswith("##FILE"): success = self.headerFiles(writeOut)
     elif self.headerLine.startswith("##"): success = self.headerAdditional()
     elif self.headerLine.startswith("#"): success = self.headerTitleString(filename, writeOut)
     else: success = self.noHeader(filename, writeOut)
@@ -51,8 +73,6 @@ class vcf:
 
 # Read information on an info field from the header line.
   def headerInfo(self, writeOut, lineType):
-    if lineType == "info": self.headerInfoText = self.headerInfoText + self.headerLine + "\n"
-    elif lineType == "format": self.headerFormatText = self.headerFormatText + self.headerLine + "\n"
     tag = self.headerLine.split("=",1)
     tagID = (tag[1].split("ID=",1))[1].split(",",1)
 
@@ -78,14 +98,43 @@ class vcf:
         print >> sys.stderr, "Number of fields associated with this tag is not an integer or '.'"
         exit(1)
 
-    if lineType == "info": self.infoHeaderTags[tagID] = tagNumber, tagType, tagDescription
-    if lineType == "format": self.formatHeaderTags[tagID] = tagNumber, tagType, tagDescription
+    if lineType == "info":
+      self.infoHeaderTags[tagID] = tagNumber, tagType, tagDescription
+      self.infoHeaderString[tagID] = self.headerLine
+    if lineType == "format":
+      self.formatHeaderTags[tagID] = tagNumber, tagType, tagDescription
+      self.formatHeaderString[tagID] = self.headerLine
+
+    return True
+
+# Check to see if the records contain information from multiple different
+# sources.  If vcfPytools has been used to find the intersection or union
+# of two vcf files, the records may have been merged to keep all the
+# information available.  If this is the case, there will be a ##FILE line
+# for each set of information in the file.  The order of these files needs
+# to be maintained.
+  def headerFiles(self, writeOut):
+    fileID = (self.headerLine.split("ID=",1))[1].split(",",1)
+    filename = fileID[1].split("\"",2)[1]
+    try: fileID = int(fileID[0])
+    except ValueError:
+      print >> sys.stderr, "File ID in ##FILE entry must be an integer."
+      print >> sys.stderr, self.headerLine
+      exit(1)
+    if self.includedDataSets.has_key(fileID):
+      print >> sys.stderr, "\nERROR: file " + self.filename
+      print >> sys.stderr, "Multiple files in the ##FILE list have identical ID values."
+      exit(1)
+    self.includedDataSets[fileID] = filename
+
+# Set the number of files with information in this vcf file.
+    if fileID > self.numberDataSets: self.numberDataSets = fileID
 
     return True
 
 # Read additional information contained in the header.
   def headerAdditional(self):
-    self.headerText = self.headerText + self.headerLine + "\n"
+    self.headerText += self.headerLine + "\n"
 
     return True
 
@@ -132,28 +181,33 @@ class vcf:
     self.record = self.filehandle.readline()
     if not self.record: return False
 
-    vcfEntries      = self.record.rstrip("\n").split("\t")
-    self.referenceSequence = vcfEntries[0]
-    self.position   = int(vcfEntries[1])
-    self.rsid       = vcfEntries[2]
-    self.ref        = vcfEntries[3]
-    self.alt        = vcfEntries[4]
-    self.quality    = vcfEntries[5]
-    self.filters    = vcfEntries[6]
-    self.info       = vcfEntries[7]
-    self.hasInfo    = True
+# Set up and execute a regular expression match.
+    recordRe = re.compile(r"^(\S+)\t(\d+)\t(\S+)\t(\S+)\t(\S+)\t(\S+)\t(\S+)\t(\S+)(\n|\t.+)$")
+    #recordRe = re.compile(r"^(\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)(\n|\s+.+)$")
+    recordMatch = recordRe.match(self.record)
+    if recordMatch == None:
+      print >> sys.stderr, "Unable to resolve vcf record.\n"
+      print >> sys.stderr, self.record
+      exit(1)
+
+    self.referenceSequence = recordMatch.group(1)
+    try: self.position   = int(recordMatch.group(2))
+    except ValueError:
+      text = "variant position is not an integer"
+      self.generalError(text, "", None)
+    self.rsid       = recordMatch.group(3)
+    self.ref        = recordMatch.group(4)
+    self.alt        = recordMatch.group(5)
+    self.quality    = recordMatch.group(6)
+    self.filters    = recordMatch.group(7)
+    self.info       = recordMatch.group(8)
+    self.genotypeString = recordMatch.group(9)
     self.infoTags   = {}
 
-    if len(vcfEntries) > 8:
-      self.genotypeFormatString = vcfEntries[8]
-      self.genotypeFormats = {}
-      self.genotypes = vcfEntries[9:]
-      self.hasGenotypes = True
-      self.genotypeFields = {}
-      self.phased = False
-    else:
-      self.hasGenotypes = False
-      self.processGenotypes = False
+# If recordMatch.group(9) is not the end of line character, there is
+# genotype information with this record.
+    if self.genotypeString != "\n": self.hasGenotypes = True
+    else: self.hasGenotypes = False
 
 # Add the reference sequence to the dictionary.  If it didn't previously
 # exist append the reference sequence to the end of the list as well. 
@@ -164,54 +218,63 @@ class vcf:
       self.referenceSequenceList.append(self.referenceSequence)
 
 # Check for multiple alternate alleles.
-    checkAlt = self.alt.split(",")
-    if len(checkAlt) > 1: self.multiAllelic = True
-    else: self.multiAllelic = False
+    self.alternateAlleles = self.alt.split(",")
+    self.numberAlternateAlleles = len(self.alternateAlleles)
 
-# Resolve all of the information in the info field and add to a
-# dictionary, if the information is to be read.
-    if self.processInfo:
+# If required, proces the info and genotypes.
+    if self.processInfo: self.processInfoFields()
+    if self.processGenotypes and self.hasGenotypes: self.processGenotypeFields()
+
+    return True
+
+# Process the info string.
+  def processInfoFields(self):
 
 # First break the info string into its constituent elements.
-      infoEntries = self.info.split(";")
+    infoEntries = self.info.split(";")
 
 # As long as some info fields exist, place them into a dictionary.
-      if len(infoEntries) == 1 and infoEntries[0] == "": self.hasInfo = False
-      else:
-        self.hasInfo = True
-        for entry in infoEntries:
-          infoEntry = entry.split("=")
-          if len(infoEntry) == 1: self.infoTags[infoEntry[0]] = True
-          elif len(infoEntry) > 1: self.infoTags[infoEntry[0]] = infoEntry[1]
+    for entry in infoEntries:
+      infoEntry = entry.split("=")
 
-# Read in string of genotype information, if genotypes are
-# present in the file and are requested.
-    if self.processGenotypes:
-      self.genotypeFormats = self.genotypeFormatString.split(":")
+# If the entry is a flag, there will be no equals and the length of
+# infoEntry will be 1.  In this case, set the dictionary entry to the
+# whole entry.  If the vcf file has undergone a union or intersection
+# operation and contains the information from multiple files, this may
+# be a '/' seperate list of flags and so cannot be set to a Boolean value
+# yet.
+      if len(infoEntry) == 1: self.infoTags[infoEntry[0]] = infoEntry[0]
+      elif len(infoEntry) > 1: self.infoTags[infoEntry[0]] = infoEntry[1]
+
+# Process the genotype formats and values.
+  def processGenotypeFields(self):
+    self.genotypeFormatString = vcfEntries[8]
+    self.genotypeFormats = {}
+    self.genotypes = vcfEntries[9:]
+    self.genotypeFields = {}
+    self.genotypeFormats = self.genotypeFormatString.split(":")
 
 # Check that the number of genotype fields is equal to the number of samples
-      if len(self.samplesList) != len(self.genotypes):
-        text = "The number of genotypes is different to the number of samples"
-        self.generalError(text, "", "")
+    if len(self.samplesList) != len(self.genotypes):
+      text = "The number of genotypes is different to the number of samples"
+      self.generalError(text, "", "")
 
 # Add the genotype information to a dictionary.
-      for i in range( len(self.samplesList) ):
-        genotypeInfo = self.genotypes[i].split(":")
-        self.genotypeFields[ self.samplesList[i] ] = {}
+    for i in range( len(self.samplesList) ):
+      genotypeInfo = self.genotypes[i].split(":")
+      self.genotypeFields[ self.samplesList[i] ] = {}
 
 # Check that there are as many fields as in the format field.  If not, this must
 # be because the information is not known.  In this case, it is permitted that
 # the genotype information is either . or ./.
-        if genotypeInfo[0] == "./." or genotypeInfo[0] == "." and len(self.genotypeFormats) != len(genotypeInfo): 
-          self.genotypeFields[ self.samplesList[i] ] = "."
-        else:
-          if len(self.genotypeFormats) != len(genotypeInfo):
-            text = "The number of genotype fields is different to the number specified in the format string"
-            self.generalError(text, "sample", self.samplesList[i])
+      if genotypeInfo[0] == "./." or genotypeInfo[0] == "." and len(self.genotypeFormats) != len(genotypeInfo): 
+        self.genotypeFields[ self.samplesList[i] ] = "."
+      else:
+        if len(self.genotypeFormats) != len(genotypeInfo):
+          text = "The number of genotype fields is different to the number specified in the format string"
+          self.generalError(text, "sample", self.samplesList[i])
 
-          for j in range( len(self.genotypeFormats) ): self.genotypeFields[ self.samplesList[i] ][ self.genotypeFormats[j] ] = genotypeInfo[j]
-
-    return True
+        for j in range( len(self.genotypeFormats) ): self.genotypeFields[ self.samplesList[i] ][ self.genotypeFormats[j] ] = genotypeInfo[j]
 
 # Parse through the vcf file until the correct reference sequence is
 # encountered and the position is greater than or equal to that requested.
@@ -332,7 +395,7 @@ class vcf:
                 self.filters + "\t" + \
                 self.info
 
-    if self.hasGenotypes == True and not removeGenotypes:
+    if self.hasGenotypes and not removeGenotypes:
       record = record + "\t" + self.genotypeFormatString
       for genotype in self.genotypes: record = record + "\t" + genotype
 

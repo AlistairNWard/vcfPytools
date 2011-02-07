@@ -16,16 +16,6 @@ from tools import *
 if __name__ == "__main__":
   main()
 
-def setVcfPriority(priorityFile, vcfFiles):
-  if priorityFile == None: priority = 0
-  elif priorityFile == vcfFiles[0]: priority = 1
-  elif priorityFile == vcfFiles[1]: priority = 2
-  else:
-    print sys.stderr, "vcf file give priority must be one of the two input vcf files."
-    exit(1)
-
-  return priority
-
 # Intersect two vcf files.  It is assumed that the two files are
 # sorted by genomic coordinates and the reference sequences are
 # in the same order.
@@ -48,17 +38,6 @@ def intersectVcf(v1, v2, priority, outputFile):
       if v1.referenceSequence == currentReferenceSequence: success1 = v1.parseVcf(v2.referenceSequence, v2.position, False, None)
       elif v2.referenceSequence == currentReferenceSequence: success2 = v2.parseVcf(v1.referenceSequence, v1.position, False, None)
       currentReferenceSequence = v1.referenceSequence
-
-# Write out a vcf record.
-def writeVcfRecord(priority, v1, v2, outputFile):
-  if priority == 0:
-    if float(v1.quality) >= float(v2.quality): outputFile.write(v1.record)
-    else: outputFile.write(v2.record)
-  elif priority == 1: outputFile.write(v1.record)
-  elif priority == 2: outputFile.write(v2.record)
-  else:
-    print >> sys.sterr, "Unknown file priority."
-    exit(1)
 
 # Intersect a vcf file and a bed file.  It is assumed that the 
 # two files are sorted by genomic coordinates and the reference
@@ -130,7 +109,8 @@ def main():
 
 # Read in the header information.
     v.parseHeader(options.vcfFiles[0], writeOut)
-    writeHeader(outputFile, v, False) # tools.py
+    taskDescriptor = "##vcfPytools=intersect " + options.vcfFiles[0] + ", " + options.bedFile
+    writeHeader(outputFile, v, False, taskDescriptor) # tools.py
 
 # Intersect the vcf file with the bed file.
     intersectVcfBed(v, b, outputFile)
@@ -155,14 +135,22 @@ def main():
 # Read in the header information.
     v1.parseHeader(options.vcfFiles[0], writeOut)
     v2.parseHeader(options.vcfFiles[1], writeOut)
+    if priority == 3:
+      v3 = vcf() # Generate a new vcf object that will contain the header information of the new file.
+      mergeHeaders(v1, v2, v3) # tools.py
+      v1.processInfo = True
+      v2.processInfo = True
+    else: checkDataSets(v1, v2)
 
 # Check that the header for the two files contain the same samples.
     if v1.samplesList != v2.samplesList:
       print >> sys.stderr, "vcf files contain different samples (or sample order)."
       exit(1)
     else:
-      if (priority == 2 and v2.hasHeader) or not v1.hasHeader: writeHeader(outputFile, v2, False) # tools.py
-      else: writeHeader(outputFile, v1, False) # tools.py
+      taskDescriptor = "##vcfPytools=intersect " + v1.filename + ", " + v2.filename
+      if priority == 3: writeHeader(outputFile, v3, False, taskDescriptor)
+      elif (priority == 2 and v2.hasHeader) or not v1.hasHeader: writeHeader(outputFile, v2, False, taskDescriptor) # tools.py
+      else: writeHeader(outputFile, v1, False, taskDescriptor) # tools.py
 
 # Intersect the two vcf files.
     intersectVcf(v1, v2, priority, outputFile)

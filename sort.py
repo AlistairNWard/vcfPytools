@@ -43,7 +43,8 @@ def main():
 
 # Read in the header information.
   v.parseHeader(options.vcfFile, writeOut)
-  writeHeader(outputFile, v, False)
+  taskDescriptor = "##vcfPytools=sorted"
+  writeHeader(outputFile, v, False, taskDescriptor)
 
 # Parse the vcf file and for each reference sequence, output
 # the position to a temp file.  These files will allow each

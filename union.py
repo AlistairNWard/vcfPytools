@@ -96,14 +96,22 @@ def main():
 # Read in the header information.
   v1.parseHeader(options.vcfFiles[0], writeOut)
   v2.parseHeader(options.vcfFiles[1], writeOut)
+  if priority == 3: 
+    v3 = vcf() # Generate a new vcf object that will contain the header information of the new file.
+    mergeHeaders(v1, v2, v3) # tools.py
+    v1.processInfo = True
+    v2.processInfo = True
+  else: checkDataSets(v1, v2)
 
 # Check that the header for the two files contain the same samples.
   if v1.samplesList != v2.samplesList:
     print >> sys.stderr, "vcf files contain different samples (or sample order)."
     exit(1)
   else:
-    if (priority == 2 and v2.hasHeader) or not v1.hasHeader: writeHeader(outputFile, v2, False) # tools.py
-    else: writeHeader(outputFile, v1, False) # tools.py
+    taskDescriptor = "##vcfPytools=union " + v1.filename + ", " + v2.filename
+    if priority == 3: writeHeader(outputFile, v3, False, taskDescriptor)
+    elif (priority == 2 and v2.hasHeader) or not v1.hasHeader: writeHeader(outputFile, v2, False, taskDescriptor) # tools.py
+    else: writeHeader(outputFile, v1, False, taskDescriptor) # tools.py
 
 # Calculate the union.
   unionVcf(v1, v2, priority, outputFile)

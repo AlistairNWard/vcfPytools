@@ -24,13 +24,13 @@ class statistics:
     self.multiAllelic = {}
     self.distributions = {}
 
-  def processGeneralStats(self, referenceSequence, rsid, ref, alt, multiAllelic, filters):
+  def processGeneralStats(self, referenceSequence, rsid, ref, alt, numberAlternateAlleles, filters):
     self.referenceSequences[referenceSequence] = True
     self.transition = False
     self.transversion = False
 
 # Determine if the SNP is a transition, transversion or multi-allelic.
-    if multiAllelic == True:
+    if numberAlternateAlleles > 1:
       if referenceSequence not in self.multiAllelic: self.multiAllelic[referenceSequence] = {}
       self.multiAllelic[referenceSequence][filters] = self.multiAllelic[referenceSequence].get(filters, 0) + 1
     else:
@@ -192,8 +192,7 @@ class statistics:
           filterList.append(filter)
 
       filterList.append("total")
-      if "PASS" in allFilters:
-        filterList.append("PASS")
+      filterList.append("PASS")
 
 # Calculate the dbsnp fraction and Ts/Tv ratio for each filter.
       for index, filter in enumerate(filterList):
@@ -448,7 +447,7 @@ def main():
 # Read through all the entries.
   while v.getRecord():
     getStats = False if (options.passed and v.filters != "PASS") else True
-    stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.multiAllelic, v.filters)
+    stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.numberAlternateAlleles, v.filters)
 
     if options.quality and getStats:
       key = int(v.quality)

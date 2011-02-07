@@ -15,8 +15,7 @@ if __name__ == "__main__":
 
 def filterFail(text, file):
   print >> sys.stderr, text
-  if file != None:
-    os.remove(file)
+  if file != None: os.remove(file)
   exit(1)
 
 def main():
@@ -39,6 +38,9 @@ def main():
   parser.add_option("-r", "--remove-genotypes",
                     action="store_true", default=False,
                     dest="removeGeno", help="remove the genotype strings from the vcf file")
+  parser.add_option("-m", "--mark-as-pass",
+                    action="store_true", default=False,
+                    dest="markPass", help="Mark all records as having passed filters")
 
   (options, args) = parser.parse_args()
 
@@ -46,6 +48,12 @@ def main():
   if options.vcfFile == None:
     parser.print_help()
     print >> sys.stderr, "\nInput vcf file (-i, --input) is required for vcf filtering."
+    exit(1)
+
+# The --mark-as-pass option can only be used if no actual filters
+# have been specified.
+  if options.markPass and options.infoFilters:
+    print >> sys.stderr, "--mark-as-pass cannot be used in conjunction with filters."
     exit(1)
 
 # Set the output file to stdout if no output file was specified.
@@ -58,6 +66,14 @@ def main():
 
 # Read in the header information.
   v.parseHeader(options.vcfFile, writeOut)
+  taskDescriptor = "##vcfPytools="
+  if options.infoFilters:
+    taskDescriptor += "filtered using the following filters: "
+    for filter, value, logic in options.infoFilters: taskDescriptor += str(filter) + str(value) + ","
+    taskDescriptor = taskDescriptor.rstrip(",")
+  if options.markPass: taskDescriptor += "marked all records as PASS"
+    
+  writeHeader(outputFile, v, options.removeGeno, taskDescriptor)
 
 # Check that specified filters from the info field are either integers or floats.
   if options.infoFilters:
@@ -106,9 +122,11 @@ def main():
 
 # Parse the vcf file and check if any of the filters are failed.  If
 # so, build up a string of failed filters.
-  writeHeader(outputFile, v, options.removeGeno)
   while v.getRecord():
     filterString = ""
+
+# Mark the record as "PASS" if --mark-as-pass was applied.
+    if options.markPass: v.filters = "PASS"
 
 # Check for quality filtering.
     if options.quality != None:

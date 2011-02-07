@@ -16,12 +16,13 @@ if __name__ == "__main__":
 # Check that the reference and alternate in the dbsnp vcf file match those
 # from the input vcf file.
 def checkRefAlt(vcfRef, vcfAlt, dbsnpRef, dbsnpAlt, ref, position):
-  if vcfRef.lower() != dbsnpRef.lower() or vcfAlt.lower() != dbsnpAlt.lower():
-    text = "WARNING: " + ref + ":" + str(position) + \
-           " has different bases than the dbsnp entry\n\tref: " + dbsnpRef + \
-           "(" + vcfRef + "), alt: " + dbsnpAlt + "(" + vcfAlt + ")"
+  text = "WARNING: ref and alt alleles differ between vcf and dbSNP. " + ref + ":" + str(position) + " vcf: " + \
+         vcfRef + "/" + vcfAlt + ", dbsnp: " + dbsnpRef + "/" + dbsnpAlt
 
-    print >> sys.stderr, text
+  if vcfRef.lower() != dbsnpRef.lower():
+    if vcfRef.lower() != dbsnpAlt.lower(): print >> sys.stderr, text
+  else:
+    if vcfAlt.lower() != dbsnpAlt.lower(): print >> sys.stderr, text
 
 # Intersect two vcf files.  It is assumed that the two files are
 # sorted by genomic coordinates and the reference sequences are
@@ -49,12 +50,11 @@ def annotateVcf(v, d, outputFile):
 
         success1 = v.getRecord()
         success2 = d.getRecord()
-      elif d.position > v.position:
-        success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile, False)
-      elif v.position > d.position: success2 = d.parseVcf(v.referenceSequence, v.position, False, None, False)
+      elif d.position > v.position: success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile)
+      elif v.position > d.position: success2 = d.parseVcf(v.referenceSequence, v.position, False, None)
     else:
-      if v.referenceSequence == currentReferenceSequence: success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile, False)
-      elif d.referenceSequence == currentReferenceSequence: success2 = d.parseVcf(v.referenceSequence, v.position, False, None, False)
+      if v.referenceSequence == currentReferenceSequence: success1 = v.parseVcf(d.referenceSequence, d.position, True, outputFile)
+      elif d.referenceSequence == currentReferenceSequence: success2 = d.parseVcf(v.referenceSequence, v.position, False, None)
       currentReferenceSequence = v.referenceSequence
 
 def main():
@@ -104,8 +104,8 @@ def main():
 
 # Add an extra line to the vcf header to indicate the file used for
 # performing dbsnp annotation.
-  v.headerText = v.headerText + "##dbsnp=" + options.dbsnpFile + "\n"
-  writeHeader(outputFile, v, False) # tools.py
+  taskDescriptor = "##vcfPytools=annotated vcf file with dbSNP file " + options.dbsnpFile
+  writeHeader(outputFile, v, False, taskDescriptor) # tools.py
 
 # Annotate the vcf file.
   annotateVcf(v, d, outputFile)

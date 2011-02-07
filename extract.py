@@ -95,7 +95,8 @@ def main():
 
 # Read in the header information.
   v.parseHeader(options.vcfFile, writeOut)
-  writeHeader(outputFile, v, False) # tools.py
+  taskDescriptor = "##vcfPytools=extract data"
+  writeHeader(outputFile, v, False, taskDescriptor) # tools.py
 
 # Read through all the entries and write out records in the correct
 # reference sequence.

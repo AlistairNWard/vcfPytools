@@ -139,6 +139,11 @@ of the input vcf files), then the record written to the output will come
 from this file.  If this argument is not set, the record with the
 highest quality is written out.
 
+  If the --priority-file (-f) argument is set to "merge", the data from both
+files will be included in the resulting file seperated by a "/".  If using this
+function, other tools may, currently, no longer function as they cannot all
+handle the multiple sets of data.
+
 -------------------------------------------------------------------------------
 merge:
 -------------------------------------------------------------------------------

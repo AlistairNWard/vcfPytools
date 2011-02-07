@@ -42,11 +42,11 @@ def main():
 # all other vcf files being merged will be checked against this.
 # Also, print out the header.
     if index == 0:
-      samples = v.samplesList
-      outputFile.write( v.headerText ) if v.headerText != "" else None
-      outputFile.write( v.headerInfoText ) if v.headerInfoText != "" else None
-      outputFile.write( v.headerFormatText ) if v.headerFormatText != "" else None
-      outputFile.write( v.headerTitles )
+      samples = list(v.samplesList)
+      taskDescriptor = "##vcfPytools=merge "
+      for file in options.vcfFiles: taskDescriptor += file + ", "
+      taskDescriptor = taskDescriptor.rstrip(", ")
+      writeHeader(outputFile, v, False, taskDescriptor) # tools.py
     else:
       if v.samplesList != samples:
         print >> sys.stderr, "WARNING: Different samples in file: ", vcfFile
