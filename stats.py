@@ -450,7 +450,7 @@ def main():
     stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.numberAlternateAlleles, v.filters)
 
     if options.quality and getStats:
-      key = int(v.quality)
+      key = v.quality
       stats.updateDistributionEntry("quality", key, v.rsid)
 
     if options.distributions and getStats:

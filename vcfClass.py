@@ -191,7 +191,7 @@ class vcf:
       exit(1)
 
     self.referenceSequence = recordMatch.group(1)
-    try: self.position   = int(recordMatch.group(2))
+    try: self.position = int(recordMatch.group(2))
     except ValueError:
       text = "variant position is not an integer"
       self.generalError(text, "", None)
@@ -203,6 +203,11 @@ class vcf:
     self.info       = recordMatch.group(8)
     self.genotypeString = recordMatch.group(9)
     self.infoTags   = {}
+
+# Check that the quality is an integer or a float.  If not, set the quality
+# to zero.
+    try: self.quality = float(self.quality)
+    except ValueError: self.quality = float(0.)
 
 # If recordMatch.group(9) is not the end of line character, there is
 # genotype information with this record.
@@ -248,9 +253,10 @@ class vcf:
 
 # Process the genotype formats and values.
   def processGenotypeFields(self):
-    self.genotypeFormatString = vcfEntries[8]
+    genotypeEntries = self.genotypeString.split("\t")
+    self.genotypeFormatString = genotypeEntries[1]
+    self.genotypes = list(genotypeEntries[2:])
     self.genotypeFormats = {}
-    self.genotypes = vcfEntries[9:]
     self.genotypeFields = {}
     self.genotypeFormats = self.genotypeFormatString.split(":")
 
@@ -307,8 +313,8 @@ class vcf:
 # First check that the tag exists in the information string.  Then split
 # the entry on commas.  For flag entries, do not perform the split.
       if self.infoTags.has_key(tag):
-        if numberValues == 0 and type(self.infoTags[tag]) == bool: result = True
-        elif numberValues != 0 and type(self.infoTags[tag]) == bool:
+        if numberValues == 0 and infoType == "Flag": result = True
+        elif numberValues != 0 and infoType == "Flag":
           print >> sys.stderr, "ERROR"
           exit(1)
         else:
@@ -391,7 +397,7 @@ class vcf:
                 self.rsid + "\t" + \
                 self.ref + "\t" + \
                 self.alt + "\t" + \
-                self.quality + "\t" + \
+                str(self.quality) + "\t" + \
                 self.filters + "\t" + \
                 self.info
 
@@ -410,8 +416,8 @@ class vcf:
 # Define error messages for different handled errors.
   def generalError(self, text, field, fieldValue):
     print >> sys.stderr, "\nError encountered when attempting to read:"
-    print >> sys.stderr, "\treference sequence : ", self.referenceSequence
-    print >> sys.stderr, "\tposition :           ", self.position
-    if field != "": print >> sys.stderr, "\t", field, ":             ", fieldValue
+    print >> sys.stderr, "\treference sequence :\t", self.referenceSequence
+    print >> sys.stderr, "\tposition :\t\t", self.position
+    if field != "": print >> sys.stderr, "\t", field, ":\t", fieldValue
     print >> sys.stderr,  "\n", text
     exit(1)

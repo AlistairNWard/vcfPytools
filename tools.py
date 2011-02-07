@@ -152,7 +152,7 @@ def checkReferenceSequenceLists(list1, list2):
 
 def writeVcfRecord(priority, v1, v2, outputFile):
   if priority == 0:
-    if float(v1.quality) >= float(v2.quality): outputFile.write(v1.record)
+    if v1.quality >= v2.quality: outputFile.write(v1.record)
     else: outputFile.write(v2.record)
   elif priority == 1: outputFile.write(v1.record)
   elif priority == 2: outputFile.write(v2.record)

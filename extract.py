@@ -137,11 +137,11 @@ def main():
         if v.infoTags.has_key(tag): writeRecord = False
     if options.passFilter and v.filters != "PASS" and writeRecord: writeRecord = False
     if options.keepQuality:
-      if qualityLogic == "eq" and float(v.quality) != qualityValue: writeRecord = False
-      if qualityLogic == "le" and float(v.quality) > qualityValue: writeRecord = False
-      if qualityLogic == "lt" and float(v.quality) >= qualityValue: writeRecord = False
-      if qualityLogic == "ge" and float(v.quality) < qualityValue: writeRecord = False
-      if qualityLogic == "gt" and float(v.quality) <= qualityValue: writeRecord = False
+      if qualityLogic == "eq" and v.quality != qualityValue: writeRecord = False
+      if qualityLogic == "le" and v.quality > qualityValue: writeRecord = False
+      if qualityLogic == "lt" and v.quality >= qualityValue: writeRecord = False
+      if qualityLogic == "ge" and v.quality < qualityValue: writeRecord = False
+      if qualityLogic == "gt" and v.quality <= qualityValue: writeRecord = False
 
     if writeRecord: outputFile.write(v.record)
 

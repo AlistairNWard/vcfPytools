@@ -130,7 +130,7 @@ def main():
 
 # Check for quality filtering.
     if options.quality != None:
-      if int(v.quality) < options.quality:
+      if v.quality < options.quality:
         filterString = filterString + ";" + "Q" + str(options.quality) if filterString != "" else "Q" + str(options.quality)
 
 # Check for filtering on info string filters.
