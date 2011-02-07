@@ -30,6 +30,9 @@ def main():
   parser.add_option("-r", "--region",
                     action="store", type="string",
                     dest="region", help="extract records from this region")
+  parser.add_option("-q", "--keep-quality",
+                    action="append", type="string", nargs=2,
+                    dest="keepQuality", help="keep records containing this quality")
   parser.add_option("-k", "--keep-info",
                     action="append", type="string",
                     dest="infoKeep", help="keep records conataining this info field")
@@ -50,7 +53,7 @@ def main():
 
 # Check that either a reference sequence or region is specified,
 # but not both if not dealing with info fields.
-  if not options.infoKeep and not options.infoDiscard and not options.passFilter:
+  if not options.infoKeep and not options.infoDiscard and not options.passFilter and not options.keepQuality:
     if not options.referenceSequence and not options.region:
       parser.print_help()
       print >> sys.stderr, "\nA region (--region, -r) or reference sequence (--reference-sequence, -s) must be supplied"
@@ -81,6 +84,23 @@ def main():
   if options.infoKeep and options.infoDiscard:
     print >> sys.stderr, "Cannot specify fields to keep and discard simultaneously."
     exit(1)
+
+# If the --keep-quality argument is used, check that a value and a logical
+# argument are supplied and that the logical argument is valid.
+
+  if options.keepQuality:
+    for value, logic in options.keepQuality:
+      if logic != "eq" and logic != "lt" and logic != "le" and logic != "gt" and logic != "ge":
+        print >> sys.stderr, "Error with --keep-quality (-q) argument.  Must take the following form:"
+        print >> sys.stderr, "\npython vcfPytools extract --in <VCF> --keep-quality <value> <logic>"
+        print >> sys.stderr, "\nwhere logic is one of: eq, le, lt, ge or gt"
+        exit(1)
+    try: qualityValue = float(value)
+    except ValueError:
+      print >> sys.stderr, "Error with --keep-quality (-q) argument.  Must take the following form:"
+      print >> sys.stderr, "Quality value must be an integer or float value."
+      exit(1)
+    qualityLogic = logic
 
 # Set the output file to stdout if no output file was specified.
   outputFile, writeOut = setOutput(options.output)
@@ -116,6 +136,12 @@ def main():
       for tag in options.infoDiscard:
         if v.infoTags.has_key(tag): writeRecord = False
     if options.passFilter and v.filters != "PASS" and writeRecord: writeRecord = False
+    if options.keepQuality:
+      if qualityLogic == "eq" and float(v.quality) != qualityValue: writeRecord = False
+      if qualityLogic == "le" and float(v.quality) > qualityValue: writeRecord = False
+      if qualityLogic == "lt" and float(v.quality) >= qualityValue: writeRecord = False
+      if qualityLogic == "ge" and float(v.quality) < qualityValue: writeRecord = False
+      if qualityLogic == "gt" and float(v.quality) <= qualityValue: writeRecord = False
 
     if writeRecord: outputFile.write(v.record)
 

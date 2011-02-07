@@ -61,29 +61,40 @@ python vcfPytools.py extract [options]
 options:
 	--in (-i):			input vcf file
 	--out (-o):			output vcf file
-	--reference-sequence (-s):	extract records from reference sequence
-	--region (-r):			extract records from region
-        --keep-info (-k):		only keep records containing this field
 	--discard-info (-d):		discard records containing this field
+        --keep-info (-k):		only keep records containing this field
         --pass-filter (-p):		discard records with a failed filter
-
-  Option --ref (-s) outputs all records from the specified reference
-sequence from the input vcf file into the output vcf file.
-
-  Option --region (-r) outputs all records from the specified region
-from the input vcf file into the output vcf file.  The format of the
-region is ref:start..end, where the start and end coordinates are 1-based.
-
-  Option --keep-info (-k) allows all records to be removed unless they contain
-this value in the info field.
+	--keep-quality (-q):		only keep records with specified quality
+	--region (-r):			extract records from region
+	--reference-sequence (-s):	extract records from reference sequence
 
   Option --discard-info (-d) ensures that all records containing this value in
 the info field will not be included in the output file.  This cannot be used
 in conjunction with --keep-info to avoid conflict.
 
+  Option --keep-info (-k) allows all records to be removed unless they contain
+this value in the info field.
+
   Option --pass-filter (-p) will only output records that have the filter field
 populated with PASS.  All filtered records or records that haven't undergone
 filtering (filter=.) will be discarded.
+
+  Option --keep-quality (-q) allows only records with specified quality values
+to be retained.  This requires two arguments: the quality value and a logical
+operator (eq - equals, le - less than or equal to, lt - less than, ge - greater
+than or equal to , gt - greater than) to determine which records to keep.  For
+example:
+
+  python vcfPytools.py extract --in <VCF> --keep-quality 90 ge
+
+  will retain all records that have a quality of 90 or greater.
+
+  Option --region (-r) outputs all records from the specified region
+from the input vcf file into the output vcf file.  The format of the
+region is ref:start..end, where the start and end coordinates are 1-based.
+
+  Option --ref (-s) outputs all records from the specified reference
+sequence from the input vcf file into the output vcf file.
 
 -------------------------------------------------------------------------------
 filter:
