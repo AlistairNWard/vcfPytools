@@ -23,39 +23,58 @@ class statistics:
     self.knownTransversions = {}
     self.multiAllelic = {}
     self.distributions = {}
+    self.novelHapmap = {}
+    self.knownHapmap = {}
+    self.novelHapmapAlt = {}
+    self.knownHapmapAlt = {}
 
-  def processGeneralStats(self, referenceSequence, rsid, ref, alt, numberAlternateAlleles, filters):
-    self.referenceSequences[referenceSequence] = True
+  #def processGeneralStats(self, referenceSequence, rsid, ref, alt, numberAlternateAlleles, filters):
+  def processGeneralStats(self, v):
+    self.referenceSequences[v.referenceSequence] = True
     self.transition = False
     self.transversion = False
 
+# Determine hapmap membership.
+    if v.infoTags.has_key("HM3") and v.rsid == ".": 
+      if v.referenceSequence not in self.novelHapmap: self.novelHapmap[v.referenceSequence] = {}
+      self.novelHapmap[v.referenceSequence][v.filters] = self.novelHapmap[v.referenceSequence].get(v.filters, 0) + 1
+    elif v.infoTags.has_key("HM3") and v.rsid != ".":
+      if v.referenceSequence not in self.knownHapmap: self.knownHapmap[v.referenceSequence] = {}
+      self.knownHapmap[v.referenceSequence][v.filters] = self.knownHapmap[v.referenceSequence].get(v.filters, 0) + 1
+    elif v.infoTags.has_key("HM3A") and v.rsid == ".":
+      if v.referenceSequence not in self.novelHapmapAlt: self.novelHapmapAlt[v.referenceSequence] = {}
+      self.novelHapmapAlt[v.referenceSequence][v.filters] = self.novelHapmapAlt[v.referenceSequence].get(v.filters, 0) + 1
+    elif v.infoTags.has_key("HM3A") and v.rsid != ".":
+      if v.referenceSequence not in self.knownHapmapAlt: self.knownHapmapAlt[v.referenceSequence] = {}
+      self.knownHapmapAlt[v.referenceSequence][v.filters] = self.knownHapmapAlt[v.referenceSequence].get(v.filters, 0) + 1
+
 # Determine if the SNP is a transition, transversion or multi-allelic.
-    if numberAlternateAlleles > 1:
-      if referenceSequence not in self.multiAllelic: self.multiAllelic[referenceSequence] = {}
-      self.multiAllelic[referenceSequence][filters] = self.multiAllelic[referenceSequence].get(filters, 0) + 1
+    if v.numberAlternateAlleles > 1:
+      if v.referenceSequence not in self.multiAllelic: self.multiAllelic[v.referenceSequence] = {}
+      self.multiAllelic[v.referenceSequence][v.filters] = self.multiAllelic[v.referenceSequence].get(v.filters, 0) + 1
     else:
-      if ref < alt: alleles = ref + alt
-      else: alleles = alt + ref
+      if v.ref < v.alt: alleles = v.ref + v.alt
+      else: alleles = v.alt + v.ref
     
 # Increment the number of transitions.  Keep track of whether they are novel or known.
       if alleles.lower() == "ag" or alleles.lower() == "ct":
         self.transition = True
-        if rsid == ".":
-          if referenceSequence not in self.novelTransitions: self.novelTransitions[referenceSequence] = {} 
-          self.novelTransitions[referenceSequence][filters] = self.novelTransitions[referenceSequence].get(filters, 0) + 1
+        if v.rsid == ".":
+          if v.referenceSequence not in self.novelTransitions: self.novelTransitions[v.referenceSequence] = {} 
+          self.novelTransitions[v.referenceSequence][v.filters] = self.novelTransitions[v.referenceSequence].get(v.filters, 0) + 1
         else:
-          if referenceSequence not in self.knownTransitions: self.knownTransitions[referenceSequence] = {}
-          self.knownTransitions[referenceSequence][filters] = self.knownTransitions[referenceSequence].get(filters, 0) + 1
+          if v.referenceSequence not in self.knownTransitions: self.knownTransitions[v.referenceSequence] = {}
+          self.knownTransitions[v.referenceSequence][v.filters] = self.knownTransitions[v.referenceSequence].get(v.filters, 0) + 1
 
 # Increment the number of transitions.  Keep track of whether they are novel or known.
       elif alleles.lower() == "ac" or alleles.lower() == "at" or alleles.lower() == "cg" or alleles.lower() == "gt":
         self.transversion = True
-        if rsid == ".":
-          if referenceSequence not in self.novelTransversions: self.novelTransversions[referenceSequence] = {}
-          self.novelTransversions[referenceSequence][filters] = self.novelTransversions[referenceSequence].get(filters, 0) + 1
+        if v.rsid == ".":
+          if v.referenceSequence not in self.novelTransversions: self.novelTransversions[v.referenceSequence] = {}
+          self.novelTransversions[v.referenceSequence][v.filters] = self.novelTransversions[v.referenceSequence].get(v.filters, 0) + 1
         else:
-          if referenceSequence not in self.knownTransversions: self.knownTransversions[referenceSequence] = {}
-          self.knownTransversions[referenceSequence][filters] = self.knownTransversions[referenceSequence].get(filters, 0) + 1
+          if v.referenceSequence not in self.knownTransversions: self.knownTransversions[v.referenceSequence] = {}
+          self.knownTransversions[v.referenceSequence][v.filters] = self.knownTransversions[v.referenceSequence].get(v.filters, 0) + 1
 
 # Update an entry in distributions.
   def updateDistributionEntry(self, tag, key, rsid):
@@ -100,81 +119,38 @@ class statistics:
     allKnownTransitions = {}
     allNovelTransversions = {}
     allKnownTransversions = {}
+    allNovelHapmap = {}
+    allKnownHapmap = {}
+    allNovelHapmapAlt = {}
+    allKnownHapmapAlt = {}
     allMultiAllelic = {}
     allFilters = {}
     allFilters["total"] = True
 
-    print >> file, '%(text1)20s  %(text2)58s  %(text3)7s  %(text4)22s' % \
-          {"text1": "", \
-           "text2": "--------------------------# SNPs--------------------------", \
-           "text3": "", \
-           "text4": "------ts/tv ratio-----"}
-    print >> file, '%(text1)20s  %(text2)10s  %(text3)10s  %(text4)10s  %(text5)10s  %(text6)10s  %(text7)7s  %(text8)6s  \
-%(text9)6s  %(text10)6s  %(text11)14s' % \
-          {"text1" : "filter", \
-           "text2" : "total ", \
-           "text3" : "novel ts", \
-           "text4" : "novel tv", \
-           "text5" : "known ts", \
-           "text6" : "known tv", \
-           "text7" : "% dbSNP", \
-           "text8" : "total", \
-           "text9" : "novel", \
-           "text10": "known", \
-           "text11": "# multiAllelic"}
+    self.printTitle(file)
 
     for ref in sorted(self.referenceSequences):
       novelTransitions = {}
       knownTransitions = {}
       novelTransversions = {}
       knownTransversions = {}
+      novelHapmap = {}
+      knownHapmap = {}
+      novelHapmapAlt = {}
+      knownHapmapAlt = {}
       multiAllelic = {}
 
       print >> file, "\nreference sequence:", ref
 
-# Count up the novel transitions for each filter.
-      if ref in self.novelTransitions:
-        for key, value in self.novelTransitions[ref].iteritems():
-          novelTransitions["total"] = novelTransitions.get("total", 0) + value
-          allNovelTransitions["total"] = allNovelTransitions.get("total", 0) + value
-          filters = key.split(";")
-          for filter in filters:
-            novelTransitions[filter] = novelTransitions.get(filter, 0) + value
-            allNovelTransitions[filter] = allNovelTransitions.get(filter, 0) + value
-            allFilters[filter] = True
-
-# Count up the known transitions for each filter.
-      if ref in self.knownTransitions:
-        for key, value in self.knownTransitions[ref].iteritems():
-          knownTransitions["total"] = knownTransitions.get("total", 0) + value
-          allKnownTransitions["total"] = allKnownTransitions.get("total", 0) + value
-          filters = key.split(";")
-          for filter in filters:
-            knownTransitions[filter] = knownTransitions.get(filter, 0) + value
-            allKnownTransitions[filter] = allKnownTransitions.get(filter, 0) + value
-            allFilters[filter] = True
-
-# Count up the novel transversions for each filter.
-      if ref in self.novelTransversions:
-        for key, value in self.novelTransversions[ref].iteritems():
-          novelTransversions["total"] = novelTransversions.get("total", 0) + value
-          allNovelTransversions["total"] = allNovelTransversions.get("total", 0) + value
-          filters = key.split(";")
-          for filter in filters:
-            novelTransversions[filter] = novelTransversions.get(filter, 0) + value
-            allNovelTransversions[filter] = allNovelTransversions.get(filter, 0) + value
-            allFilters[filter] = True
-
-# Count up the known transversions for each filter.
-      if ref in self.knownTransversions:
-        for key, value in self.knownTransversions[ref].iteritems():
-          knownTransversions["total"] = knownTransversions.get("total", 0) + value
-          allKnownTransversions["total"] = allKnownTransversions.get("total", 0) + value
-          filters = key.split(";")
-          for filter in filters:
-            knownTransversions[filter] = knownTransversions.get(filter, 0) + value
-            allKnownTransversions[filter] = allKnownTransversions.get(filter, 0) + value
-            allFilters[filter] = True
+# Count up the number of each mutation type for each filter.
+      novelTransitions, allNovelTransitions, allFilters = self.countByFilter(ref, self.novelTransitions, allFilters)
+      knownTransitions, allKnownTransitions, allFilters = self.countByFilter(ref, self.knownTransitions, allFilters)
+      novelTransversions, allNovelTransversions, allFilters = self.countByFilter(ref, self.novelTransversions, allFilters)
+      knownTransversions, allKnownTransversions, allFilters = self.countByFilter(ref, self.knownTransversions, allFilters)
+      novelHapmap, allNovelHapmap, allFilters = self.countByFilter(ref, self.novelHapmap, allFilters)
+      knownHapmap, allKnownHapmap, allFilters = self.countByFilter(ref, self.knownHapmap, allFilters)
+      novelHapmapAlt, allNovelHapmapAlt, allFilters = self.countByFilter(ref, self.novelHapmapAlt, allFilters)
+      knownHapmapAlt, allKnownHapmapAlt, allFilters = self.countByFilter(ref, self.knownHapmapAlt, allFilters)
 
 # Count up the number of multi-allelic sites.
       if ref in self.multiAllelic:
@@ -214,27 +190,16 @@ class statistics:
         knowntstv = float(knownTs) / float(knownTv) if knownTv != 0 else 0.
         tstv = float(transitions) / float(transversions) if transversions != 0 else 0.
 
-        if filter == "total":
-          print >> file, "\n               ------------------------------------------------------------------------" + \
-                         "---------------------------------------------------------"
+        novelHM = novelHapmap.get(filter, 0)
+        knownHM = knownHapmap.get(filter, 0)
+        novelHMAlt = novelHapmapAlt.get(filter, 0)
+        knownHMAlt = knownHapmapAlt.get(filter, 0)
 
-        print >> file, '%(filter)20s  %(total)10d  %(novelTs)10d  %(novelTv)10d  %(knownTs)10d  %(knownTv)10d  %(dbsnp)7.2f  \
-%(totaltstv)6.2f  %(noveltstv)6.2f  %(knowntstv)6.2f  %(multi)14d' % \
-              {"filter" : filter, \
-               "total" : totalSnp, \
-               "novelTs" : novelTs, \
-               "novelTv" : novelTv, \
-               "knownTs" : knownTs, \
-               "knownTv" : knownTv, \
-               "dbsnp" : dbsnp, \
-               "totaltstv" : tstv, \
-               "noveltstv" : noveltstv, \
-               "knowntstv": knowntstv, \
-               "multi": multi}
+        self.printValues(file, filter, totalSnp, novelTs, novelTv, knownTs, knownTv, dbsnp, tstv, noveltstv, knowntstv, novelHM, knownHM, novelHMAlt, knownHMAlt)
 
         if len(filterList) - 1 == index:
           print >> file, "               ----------------------------------------------------------------------------" + \
-                         "-----------------------------------------------------"
+                         "--------------------------------------------------------"
 
     print >> file, "\nTotal for all reference sequences"
     for index, filter in enumerate(filterList):
@@ -256,29 +221,83 @@ class statistics:
       knowntstv = float(knownTs) / float(knownTv) if knownTv != 0 else 0
       tstv = float(transitions) / float(transversions) if transversions != 0 else 0
 
-      if filter == "total":
-        print >> file, "\n               ----------------------------------------------------------------------------" + \
-                       "-----------------------------------------------------"
+      novelHM = allNovelHapmap.get(filter, 0)
+      knownHM = allKnownHapmap.get(filter, 0)
+      novelHMAlt = allNovelHapmapAlt.get(filter, 0)
+      knownHMAlt = allKnownHapmapAlt.get(filter, 0)
 
-      print >> file, '%(filter)20s  %(total)10d  %(novelTs)10d  %(novelTv)10d  %(knownTs)10d  %(knownTv)10d  %(dbsnp)7.2f  \
-%(totaltstv)6.2f  %(noveltstv)6.2f  %(knowntstv)6.2f  %(multi)14d' % \
-            {"filter" : filter, \
-             "total" : totalSnp, \
-             "novelTs" : novelTs, \
-             "novelTv" : novelTv, \
-             "knownTs" : knownTs, \
-             "knownTv" : knownTv, \
-             "dbsnp" : dbsnp, \
-             "totaltstv" : tstv, \
-             "noveltstv" : noveltstv, \
-             "knowntstv": knowntstv, \
-             "multi": multi}
+      self.printValues(file, filter, totalSnp, novelTs, novelTv, knownTs, knownTv, dbsnp, tstv, noveltstv, knowntstv, novelHM, knownHM, novelHMAlt, knownHMAlt)
 
       if len(filterList) - 1 == index:
         print >> file, "               ----------------------------------------------------------------------------------" + \
-                       "-----------------------------------------------"
+                       "--------------------------------------------------"
 
     print >> file
+
+# Count up the number of each variant type and store in arrays.
+  def countByFilter(self, ref, array, allFilters):
+    arrayValues = {}
+    allArrayValues = {}
+
+    if ref in array:
+      for key, value in array[ref].iteritems():
+        arrayValues["total"] = arrayValues.get("total", 0) + value
+        allArrayValues["total"] = allArrayValues.get("total", 0) + value
+        filters = key.split(";")
+        for filter in filters:
+          arrayValues[filter] = arrayValues.get(filter, 0) + value
+          allArrayValues[filter] = allArrayValues.get(filter, 0) + value
+          allFilters[filter] = True
+
+    return arrayValues, allArrayValues, allFilters
+
+# Print out the title.
+  def printTitle(self, file):
+    print >> file, '%(text1)20s  %(text2)58s  %(text3)7s  %(text4)22s  %(text5)0s  %(text6)23s' % \
+          {"text1": "", \
+           "text2": "--------------------------# SNPs--------------------------", \
+           "text3": "", \
+           "text4": "------ts/tv ratio-----", \
+           "text5": "", \
+           "text6": "----------hapmap 3.2----------"}
+    print >> file, '%(text1)20s  %(text2)10s  %(text3)10s  %(text4)10s  %(text5)10s  %(text6)10s  %(text7)7s  %(text8)6s  \
+%(text9)6s  %(text10)6s  %(text11)12s  %(text12)12s' % \
+          {"text1" : "filter", \
+           "text2" : "total ", \
+           "text3" : "novel ts", \
+           "text4" : "novel tv", \
+           "text5" : "known ts", \
+           "text6" : "known tv", \
+           "text7" : "% dbSNP", \
+           "text8" : "total", \
+           "text9" : "novel", \
+           "text10": "known", \
+           "text11": "novel", \
+           "text12": "known"}
+           #"text11": "# multiAllelic"}
+
+# Print out the values.
+  def printValues(self, file, filter, totalSnp, novelTs, novelTv, knownTs, knownTv, dbsnp, tstv, noveltstv, knowntstv, novelHM, knownHM, novelHMAlt, knownHMAlt):
+    if filter == "total":
+      print >> file, "\n               ------------------------------------------------------------------------" + \
+                      "------------------------------------------------------------"
+    print >> file, '%(filter)20s  %(total)10d  %(novelTs)10d  %(novelTv)10d  %(knownTs)10d  %(knownTv)10d  %(dbsnp)7.2f  \
+%(totaltstv)6.2f  %(noveltstv)6.2f  %(knowntstv)6.2f  %(novelHM)6d (%(novelHMAlt)6d)  %(knownHM)6d (%(knownHMAlt)6d)' % \
+          {"filter" : filter, \
+           "total" : totalSnp, \
+           "novelTs" : novelTs, \
+           "novelTv" : novelTv, \
+           "knownTs" : knownTs, \
+           "knownTv" : knownTv, \
+           "dbsnp" : dbsnp, \
+           "totaltstv" : tstv, \
+           "noveltstv" : noveltstv, \
+           "knowntstv": knowntstv, \
+           "novelHM": novelHM, \
+           "novelHMAlt": novelHMAlt, \
+           "knownHM": knownHM, \
+           "knownHMAlt": knownHMAlt}
+           #"multi": multi}
 
 # Work backwards through the distributions and add up the number
 # of each value (e.g. novel transitions) with a value greater
@@ -419,6 +438,7 @@ def main():
 
 # Open the file.
   v.openVcf(options.vcfFile)
+  v.processInfo = True
 
 # Read in the header information.
   stats = statistics() # Define statistics object
@@ -427,7 +447,6 @@ def main():
 # If distributions for all the info fields listed in the header are
 # requested, populate options.distributions with these values.
   if options.distributions:
-    v.processInfo = True
     if options.distributions[0].lower() == "all" and len(options.distributions) == 1:
       for tag in v.infoHeaderTags:
         options.distributions.append(tag)
@@ -447,7 +466,7 @@ def main():
 # Read through all the entries.
   while v.getRecord():
     getStats = False if (options.passed and v.filters != "PASS") else True
-    stats.processGeneralStats(v.referenceSequence, v.rsid, v.ref, v.alt, v.numberAlternateAlleles, v.filters)
+    stats.processGeneralStats(v)
 
     if options.quality and getStats:
       key = v.quality

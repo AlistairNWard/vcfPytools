@@ -41,6 +41,7 @@ class vcf:
     self.processInfo = False
     self.processGenotypes = False
     self.dbsnpVcf = False
+    self.hapmapVcf = False
 
 # Open a vcf file.
   def openVcf(self, filename):
@@ -226,7 +227,7 @@ class vcf:
     self.alternateAlleles = self.alt.split(",")
     self.numberAlternateAlleles = len(self.alternateAlleles)
 
-# If required, proces the info and genotypes.
+# If required, process the info and genotypes.
     if self.processInfo: self.processInfoFields()
     if self.processGenotypes and self.hasGenotypes: self.processGenotypeFields()
 
@@ -401,9 +402,7 @@ class vcf:
                 self.filters + "\t" + \
                 self.info
 
-    if self.hasGenotypes and not removeGenotypes:
-      record = record + "\t" + self.genotypeFormatString
-      for genotype in self.genotypes: record = record + "\t" + genotype
+    if self.hasGenotypes and not removeGenotypes: record += self.genotypeString
 
     record += "\n"
 

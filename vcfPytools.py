@@ -4,13 +4,13 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.24"
+__version__ = "version 0.25"
 __date__ = "january 2011"
 
 def main():
   usage = "Usage: vcfPytools.py [tool] [options]\n\n" + \
           "Available tools:\n" + \
-          "  dbsnp:\n\tAnnotate the vcf file with dbsnp membership (requires dbsnp in vcf format).\n" + \
+          "  annotate:\n\tAnnotate the vcf file with membership in other vcf files.\n" + \
           "  extract:\n\tExtract vcf records from a region.\n" + \
           "  filter:\n\tFilter the vcf file.\n" + \
           "  intersect:\n\tGenerate the intersection of two vcf files.\n" + \
@@ -31,9 +31,9 @@ def main():
     print >> sys.stderr, usage
     exit(1)
 
-  if tool == "dbsnp":
-    import dbsnp
-    success = dbsnp.main()
+  if tool == "annotate":
+    import annotate
+    success = annotate.main()
   elif tool == "extract":
     import extract
     success = extract.main()

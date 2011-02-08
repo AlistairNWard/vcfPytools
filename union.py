@@ -38,7 +38,7 @@ def unionVcf(v1, v2, priority, outputFile):
       outputFile.write(v1.record)
       success1 = v1.getRecord()
 
-    if v1.referenceSequence == v2.referenceSequence:
+    if v1.referenceSequence == v2.referenceSequence and v1.referenceSequence == currentReferenceSequence:
       if v1.position == v2.position:
         writeVcfRecord(priority, v1, v2, outputFile)
         success1 = v1.getRecord()
@@ -49,6 +49,17 @@ def unionVcf(v1, v2, priority, outputFile):
     else:
       if v1.referenceSequence == currentReferenceSequence: success1 = v1.parseVcf(v2.referenceSequence, v2.position, True, outputFile)
       elif v2.referenceSequence == currentReferenceSequence: success2 = v2.parseVcf(v1.referenceSequence, v1.position, True, outputFile)
+
+# If the last record for a reference sequence is the same for both vcf
+# files, they will both have referenceSequences different from the
+# current reference sequence.  Change the reference sequence to reflect
+# this and proceed.
+      else:
+        if v1.referenceSequence != v2.referenceSequence:
+          print >> sys.stderr, "ERROR: Reference sequences for both files are unexpectedly different."
+          print >> sys.stderr, "Check that both files contain records for the following reference sequences:"
+          print >> sys.stderr, "\t", v1.referenceSequence, " and ", v2.referenceSequence
+          exit(1)
       currentReferenceSequence = v1.referenceSequence
 
 def main():

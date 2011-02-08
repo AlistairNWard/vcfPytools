@@ -8,7 +8,7 @@ vcfPytools is a set of tools in python for manipulation vcf v4.0 files.
 Available tools:
 -------------------------------------------------------------------------------
 
-	dbsnp - annotate a vcf file with dbSNP rsid values.
+	annotate - annotate a vcf file. (dbsnp, hapmap)
 	extract - extract reads from a specified region.
 	filter - filter the vcf file.
 	intersect - generate the intersection of two vcf files.
@@ -37,20 +37,28 @@ defined input files.
   If no output file is defined, the output will be sent to stdout.
 
 -------------------------------------------------------------------------------
-dbsnp:
+annotate:
 -------------------------------------------------------------------------------
 
-python vcfPytools.py dbsnp [options]
+python vcfPytools.py annotate [options]
 
 options:
 	--in (-i): 	input vcf file
 	--out (-o):	output vcf file
+	--hapmap (-m):	input hapmap vcf file
 	--dbsnp (-d):	input dbSNP vcf file
 
-  Annotate the vcf file with dbSNP rsid values.  The input dbSNP file must
-also be in vcf v4.0 format.
+  Currently, either a hapmap or a dbsnp file should be provided, not both.  It
+is simple to pipe the result of dbsnp annotation back into the annotation tool
+to provide annotation of both.
 
-  Only dbSNP entries with VC=SNP are included.
+  --dbsnp (-d) will annotate the vcf file with dbSNP rsid values.  The input 
+dbSNP file must also be in vcf v4.0 format.  Only dbSNP entries with VC=SNP are
+included.
+
+  --hapmap (-m) annotates the vcf file info string to include HM3 if the record
+is included hapmap.  If the ref/alt values do not match the hapmap file, the
+info string will be populated with HM3A.
 
 -------------------------------------------------------------------------------
 extract:
