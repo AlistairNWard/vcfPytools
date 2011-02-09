@@ -4,8 +4,8 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.25"
-__date__ = "january 2011"
+__version__ = "version 0.26"
+__date__ = "february 2011"
 
 def main():
   usage = "Usage: vcfPytools.py [tool] [options]\n\n" + \

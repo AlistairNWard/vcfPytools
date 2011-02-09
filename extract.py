@@ -35,7 +35,7 @@ def main():
                     dest="keepQuality", help="keep records containing this quality")
   parser.add_option("-k", "--keep-info",
                     action="append", type="string",
-                    dest="infoKeep", help="keep records conataining this info field")
+                    dest="infoKeep", help="keep records containing this info field")
   parser.add_option("-d", "--discard-info",
                     action="append", type="string",
                     dest="infoDiscard", help="discard records containing this info field")
@@ -131,6 +131,9 @@ def main():
 # specified region.
     if options.infoKeep and writeRecord:
       for tag in options.infoKeep:
+        if v.infoTags.has_key(tag):
+          writeRecord = True
+          break
         if not v.infoTags.has_key(tag): writeRecord = False
     if options.infoDiscard and writeRecord:
       for tag in options.infoDiscard:
