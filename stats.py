@@ -16,6 +16,7 @@ from tools import *
 
 class statistics:
   def __init__(self):
+    self.currentReferenceSequence = None
     self.referenceSequences = {}
     self.novelTransitions = {}
     self.knownTransitions = {}
@@ -27,12 +28,24 @@ class statistics:
     self.knownHapmap = {}
     self.novelHapmapAlt = {}
     self.knownHapmapAlt = {}
+    self.variantDensity = {}
 
   #def processGeneralStats(self, referenceSequence, rsid, ref, alt, numberAlternateAlleles, filters):
   def processGeneralStats(self, v):
     self.referenceSequences[v.referenceSequence] = True
     self.transition = False
     self.transversion = False
+
+# Check if reference sequence has changed and if so, reset the last variant position.
+    if v.referenceSequence != self.currentReferenceSequence:
+      self.currentReferenceSequence = v.referenceSequence
+      self.lastVariantPosition = -1
+
+# Determine the distance to the previous variant.
+    if self.lastVariantPosition != -1:
+      self.distance = v.position - self.lastVariantPosition
+      self.variantDensity[self.distance] = self.variantDensity.get(self.distance, 0) + 1
+    self.lastVariantPosition = v.position
 
 # Determine hapmap membership.
     if v.infoTags.has_key("HM3") and v.rsid == ".": 
@@ -143,14 +156,14 @@ class statistics:
       print >> file, "\nreference sequence:", ref
 
 # Count up the number of each mutation type for each filter.
-      novelTransitions, allNovelTransitions, allFilters = self.countByFilter(ref, self.novelTransitions, allFilters)
-      knownTransitions, allKnownTransitions, allFilters = self.countByFilter(ref, self.knownTransitions, allFilters)
-      novelTransversions, allNovelTransversions, allFilters = self.countByFilter(ref, self.novelTransversions, allFilters)
-      knownTransversions, allKnownTransversions, allFilters = self.countByFilter(ref, self.knownTransversions, allFilters)
-      novelHapmap, allNovelHapmap, allFilters = self.countByFilter(ref, self.novelHapmap, allFilters)
-      knownHapmap, allKnownHapmap, allFilters = self.countByFilter(ref, self.knownHapmap, allFilters)
-      novelHapmapAlt, allNovelHapmapAlt, allFilters = self.countByFilter(ref, self.novelHapmapAlt, allFilters)
-      knownHapmapAlt, allKnownHapmapAlt, allFilters = self.countByFilter(ref, self.knownHapmapAlt, allFilters)
+      novelTransitions, allNovelTransitions, allFilters = self.countByFilter(ref, self.novelTransitions, allNovelTransitions, allFilters)
+      knownTransitions, allKnownTransitions, allFilters = self.countByFilter(ref, self.knownTransitions, allKnownTransitions, allFilters)
+      novelTransversions, allNovelTransversions, allFilters = self.countByFilter(ref, self.novelTransversions, allNovelTransversions, allFilters)
+      knownTransversions, allKnownTransversions, allFilters = self.countByFilter(ref, self.knownTransversions, allKnownTransversions, allFilters)
+      novelHapmap, allNovelHapmap, allFilters = self.countByFilter(ref, self.novelHapmap, allNovelHapmap, allFilters)
+      knownHapmap, allKnownHapmap, allFilters = self.countByFilter(ref, self.knownHapmap, allKnownHapmap, allFilters)
+      novelHapmapAlt, allNovelHapmapAlt, allFilters = self.countByFilter(ref, self.novelHapmapAlt, allNovelHapmapAlt, allFilters)
+      knownHapmapAlt, allKnownHapmapAlt, allFilters = self.countByFilter(ref, self.knownHapmapAlt, allKnownHapmapAlt, allFilters)
 
 # Count up the number of multi-allelic sites.
       if ref in self.multiAllelic:
@@ -235,9 +248,8 @@ class statistics:
     print >> file
 
 # Count up the number of each variant type and store in arrays.
-  def countByFilter(self, ref, array, allFilters):
+  def countByFilter(self, ref, array, allArrayValues, allFilters):
     arrayValues = {}
-    allArrayValues = {}
 
     if ref in array:
       for key, value in array[ref].iteritems():
@@ -395,6 +407,16 @@ class statistics:
        
     file.close()
 
+# Write out the distribution of inter variant distance.
+  def printVariantDensity(self, output):
+    if output.find("/") != -1: outputFile = (os.getcwd() + "/" + output.rsplit("/",1)[1]).rsplit(".",1)[0] + ".distance.txt"
+    else: outputFile = (os.getcwd() + "/" + output).rsplit(".",1)[0] + ".distance.txt"
+    distanceFile = open(outputFile,'w')
+    distanceList = self.variantDensity.keys()
+    sortedDistanceList = sorted(list(distanceList))
+    for distance in sortedDistanceList: print >> distanceFile, distance, self.variantDensity[distance]
+    distanceFile.close()
+
 if __name__ == "__main__":
   main()
 
@@ -499,6 +521,9 @@ def main():
   if options.distributions or options.quality:
     stats.expandDistributions()
     stats.printDistributions(options.vcfFile, outputFile, options.plotDist)
+
+# Print out the distribution of intervariant distances.
+  stats.printVariantDensity(options.vcfFile)
 
 # Terminate the program cleanly.
   return 0

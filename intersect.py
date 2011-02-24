@@ -60,7 +60,7 @@ def intersectVcfBed(v, b, outputFile):
 
 # As soon as the end of the first file is reached, there are no
 # more intersections and the program can terminate.
-  while successv:
+  while successv and successb:
     if v.referenceSequence == b.referenceSequence:
       if v.position < b.start: successv = v.parseVcf(b.referenceSequence, b.start, False, None)
       elif v.position > b.end: successb = b.parseBed(v.referenceSequence, v.position)

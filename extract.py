@@ -130,11 +130,7 @@ def main():
 # Only consider these fields if the record is contained within the
 # specified region.
     if options.infoKeep and writeRecord:
-      for tag in options.infoKeep:
-        if v.infoTags.has_key(tag):
-          writeRecord = True
-          break
-        if not v.infoTags.has_key(tag): writeRecord = False
+      writeRecord=any(tag in v.infoTags for tag in options.infoKeep)
     if options.infoDiscard and writeRecord:
       for tag in options.infoDiscard:
         if v.infoTags.has_key(tag): writeRecord = False

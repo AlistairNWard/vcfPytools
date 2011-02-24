@@ -61,12 +61,12 @@ def main():
 # is not correctly sorted.
     if previousReference != v.referenceSequence:
       if parsedReferenceSequences.has_key(v.referenceSequence): sortError = True
+      previousReference = v.referenceSequence
     elif v.position < previousPosition: sortError = True
     elif v.position == previousPosition:
       duplicateError = True
       print v.referenceSequence, v.position, "is duplicated"
       
-    previousReference = v.referenceSequence
     previousPosition = v.position
     parsedReferenceSequences[ v.referenceSequence ] = True
 
@@ -85,7 +85,7 @@ def main():
 # Close the file.
   v.closeVcf(options.vcfFile)
 
-# Print that no error were found (if there had been errors, the
+# Print that no errors were found (if there had been errors, the
 # program would have terminated).
   if sortError == True: print >> sys.stderr, "vcf file is not sorted."
   elif duplicateError == True: print >> sys.stderr, "vcf file contains duplicate entries."

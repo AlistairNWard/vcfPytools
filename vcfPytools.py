@@ -4,7 +4,7 @@ import os.path
 import sys
 
 __author__ = "alistair ward"
-__version__ = "version 0.26"
+__version__ = "version 0.27"
 __date__ = "february 2011"
 
 def main():
@@ -13,6 +13,7 @@ def main():
           "  annotate:\n\tAnnotate the vcf file with membership in other vcf files.\n" + \
           "  extract:\n\tExtract vcf records from a region.\n" + \
           "  filter:\n\tFilter the vcf file.\n" + \
+          "  indel:\n\tIndel manipulation tools.\n" + \
           "  intersect:\n\tGenerate the intersection of two vcf files.\n" + \
           "  merge:\n\tMerge a list of vcf files.\n" + \
           "  multi:\n\tFind the intersections and unique fractions of multiple vcf files.\n" + \
@@ -43,6 +44,9 @@ def main():
   elif tool == "intersect":
     import intersect
     success = intersect.main()
+  elif tool == "indel":
+    import indel
+    success = indel.main()
   elif tool == "multi":
     import multi
     success = multi.main()
