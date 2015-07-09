@@ -19,6 +19,11 @@ def checkRefAlt(vcfRef, vcfAlt, dbsnpRef, dbsnpAlt, ref, position, annotation):
   text = "WARNING: ref and alt alleles differ between vcf and " + annotation + " " + ref + ":" + str(position) + " vcf: " + \
          vcfRef + "/" + vcfAlt + ", dbsnp: " + dbsnpRef + "/" + dbsnpAlt
 
+
+
+
+
+
   allelesAgree = True
   if vcfRef.lower() != dbsnpRef.lower():
     if vcfRef.lower() != dbsnpAlt.lower():
